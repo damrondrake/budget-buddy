@@ -1,32 +1,19 @@
-import { useState, useEffect } from 'react'
-import './App.css'
+import { Routes, Route } from 'react-router-dom'
+import Layout from './components/Layout'
+import Dashboard from './pages/Dashboard'
+import Transactions from './pages/Transactions'
+import Budgets from './pages/Budgets'
+import Income from './pages/Income'
 
-function App() {
-  const [health, setHealth] = useState(null)
-
-  useEffect(() => {
-    fetch('http://localhost:8000/api/health')
-      .then((res) => res.json())
-      .then((data) => setHealth(data))
-      .catch(() => setHealth({ status: 'unreachable' }))
-  }, [])
-
+export default function App() {
   return (
-    <div className="app">
-      <h1>BudgetBuddy</h1>
-      <p>Your personal finance dashboard</p>
-      <div className="health-status">
-        <h3>API Status</h3>
-        {health ? (
-          <span className={health.status === 'healthy' ? 'healthy' : 'error'}>
-            {health.status}
-          </span>
-        ) : (
-          <span>Checking...</span>
-        )}
-      </div>
-    </div>
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/transactions" element={<Transactions />} />
+        <Route path="/budgets" element={<Budgets />} />
+        <Route path="/income" element={<Income />} />
+      </Route>
+    </Routes>
   )
 }
-
-export default App
