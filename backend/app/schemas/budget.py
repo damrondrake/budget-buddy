@@ -1,0 +1,19 @@
+from pydantic import BaseModel
+
+
+class BudgetCreate(BaseModel):
+    category_id: int
+    month: int
+    year: int
+    amount_limit: float
+
+
+class BudgetOut(BaseModel):
+    id: int
+    category_id: int
+    month: int
+    year: int
+    amount_limit: float
+    category_name: str | None = None
+
+    model_config = {"from_attributes": True}
