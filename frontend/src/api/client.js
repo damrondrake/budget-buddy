@@ -13,6 +13,7 @@ export const deleteTransaction = (id) => api.delete(`/transactions/${id}`)
 // Budgets
 export const getBudgets = (params) => api.get('/budgets', { params })
 export const upsertBudget = (data) => api.post('/budgets', data)
+export const copyBudgets = (data) => api.post('/budgets/copy', data)
 
 // Categories
 export const getCategories = () => api.get('/categories')

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getBudgets, upsertBudget, getCategories, getSummary } from '../api/client'
+import { getBudgets, upsertBudget, copyBudgets, getCategories, getSummary } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import EmptyState, { BudgetsEmptyIcon } from '../components/EmptyState'
 import { formatMoney } from '../utils/format'
@@ -13,6 +13,7 @@ export default function Budgets() {
   const [spending, setSpending] = useState({})
   const [formCatId, setFormCatId] = useState('')
   const [formAmount, setFormAmount] = useState('')
+  const [copyMsg, setCopyMsg] = useState(null)
 
   useEffect(() => {
     getCategories().then((res) => setCategories(res.data))
@@ -44,6 +45,25 @@ export default function Budgets() {
     setFormCatId('')
     setFormAmount('')
     fetchData()
+  }
+
+  async function handleCopy() {
+    setCopyMsg(null)
+    const fromMonth = month === 1 ? 12 : month - 1
+    const fromYear = month === 1 ? year - 1 : year
+    try {
+      const res = await copyBudgets({
+        from_month: fromMonth,
+        from_year: fromYear,
+        to_month: month,
+        to_year: year,
+      })
+      setCopyMsg({ type: 'success', text: res.data.message })
+      fetchData()
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to copy budgets'
+      setCopyMsg({ type: 'error', text: detail })
+    }
   }
 
   const budgetedCatIds = new Set(budgets.map((b) => b.category_id))
@@ -91,13 +111,30 @@ export default function Budgets() {
         </div>
       </form>
 
+      {/* Copy feedback */}
+      {copyMsg && (
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${
+          copyMsg.type === 'success'
+            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            : 'bg-red-50 text-red-700 border border-red-200'
+        }`}>
+          {copyMsg.text}
+        </div>
+      )}
+
       {/* Budget cards */}
       {budgets.length === 0 ? (
-        <div className="mb-6">
-          <EmptyState
-            icon={<BudgetsEmptyIcon />}
-            message="No budgets set for this month — use the form above to add one."
-          />
+        <div className="bg-white rounded-xl border border-gray-200 p-10 text-center mb-6">
+          <div className="flex justify-center mb-3 text-gray-300">
+            <BudgetsEmptyIcon />
+          </div>
+          <p className="text-gray-500 text-sm mb-4">No budgets set for this month — use the form above to add one.</p>
+          <button
+            onClick={handleCopy}
+            className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Copy Last Month's Budgets
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">

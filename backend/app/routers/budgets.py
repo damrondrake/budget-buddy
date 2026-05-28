@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Budget, Category
-from app.schemas.budget import BudgetCreate, BudgetOut
+from app.schemas.budget import BudgetCreate, BudgetOut, BudgetCopy, BudgetCopyResult
 
 router = APIRouter(prefix="/api/budgets", tags=["budgets"])
 
@@ -48,3 +48,36 @@ def upsert_budget(data: BudgetCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(b)
     return _enrich(b)
+
+
+@router.post("/copy", response_model=BudgetCopyResult)
+def copy_budgets(data: BudgetCopy, db: Session = Depends(get_db)):
+    source = db.query(Budget).filter(
+        Budget.month == data.from_month, Budget.year == data.from_year
+    ).all()
+    if not source:
+        raise HTTPException(404, "No budgets found from the source month")
+
+    existing_cats = {
+        b.category_id
+        for b in db.query(Budget).filter(
+            Budget.month == data.to_month, Budget.year == data.to_year
+        ).all()
+    }
+
+    copied = 0
+    for b in source:
+        if b.category_id not in existing_cats:
+            db.add(Budget(
+                category_id=b.category_id,
+                month=data.to_month,
+                year=data.to_year,
+                amount_limit=b.amount_limit,
+            ))
+            copied += 1
+
+    db.commit()
+    return BudgetCopyResult(
+        copied=copied,
+        message=f"Copied {copied} budget(s)" if copied > 0 else "All budgets already exist for this month",
+    )
