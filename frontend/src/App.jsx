@@ -5,6 +5,7 @@ import Transactions from './pages/Transactions'
 import Budgets from './pages/Budgets'
 import Income from './pages/Income'
 import Settings from './pages/Settings'
+import Trends from './pages/Trends'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/budgets" element={<Budgets />} />
         <Route path="/income" element={<Income />} />
+        <Route path="/trends" element={<Trends />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>

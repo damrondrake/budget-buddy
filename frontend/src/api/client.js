@@ -38,4 +38,7 @@ export const updateUser = (id, data) => api.put(`/users/${id}`, data)
 // Summary
 export const getSummary = (month, year) => api.get(`/summary/${month}/${year}`)
 
+// Trends
+export const getTrends = (months = 6) => api.get('/trends', { params: { months } })
+
 export default api
