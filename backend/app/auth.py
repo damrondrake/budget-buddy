@@ -1,6 +1,8 @@
+import os
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
+from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -9,7 +11,9 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.account import Account
 
-SECRET_KEY = "budgetbuddy-dev-secret-change-in-production"
+load_dotenv()
+
+SECRET_KEY = os.environ["SECRET_KEY"]
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
