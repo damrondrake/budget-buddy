@@ -17,6 +17,8 @@ def _enrich(t: Transaction) -> TransactionOut:
         is_split=t.is_split,
         date=t.date,
         note=t.note,
+        is_recurring=t.is_recurring,
+        recurring_id=t.recurring_id,
         category_name=t.category.name if t.category else None,
         paid_by_name=t.paid_by_user.name if t.paid_by_user else None,
     )

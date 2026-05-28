@@ -25,6 +25,12 @@ export const getIncome = (params) => api.get('/income', { params })
 export const createIncome = (data) => api.post('/income', data)
 export const deleteIncome = (id) => api.delete(`/income/${id}`)
 
+// Recurring
+export const getRecurring = () => api.get('/recurring')
+export const createRecurring = (data) => api.post('/recurring', data)
+export const deleteRecurring = (id) => api.delete(`/recurring/${id}`)
+export const applyRecurring = (params) => api.post('/recurring/apply', null, { params })
+
 // Users
 export const getUsers = () => api.get('/users')
 export const updateUser = (id, data) => api.put(`/users/${id}`, data)

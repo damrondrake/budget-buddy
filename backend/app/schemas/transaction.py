@@ -28,6 +28,8 @@ class TransactionOut(BaseModel):
     is_split: bool
     date: date_type
     note: str | None
+    is_recurring: bool = False
+    recurring_id: int | None = None
     category_name: str | None = None
     paid_by_name: str | None = None
 
