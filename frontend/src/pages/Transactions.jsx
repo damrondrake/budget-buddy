@@ -7,6 +7,7 @@ import MonthPicker from '../components/MonthPicker'
 import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
 import { formatMoney, formatDate } from '../utils/format'
 import { downloadCsv } from '../utils/exportCsv'
+import { useUsers } from '../context/UsersContext'
 
 const EMPTY_FORM = {
   amount: '',
@@ -36,6 +37,7 @@ export default function Transactions() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  const { users } = useUsers()
 
   // Recurring state
   const [recurring, setRecurring] = useState([])
@@ -326,8 +328,9 @@ export default function Transactions() {
                         onChange={(e) => setRecurringForm({ ...recurringForm, paid_by: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                       >
-                        <option value={1}>Me</option>
-                        <option value={2}>Partner</option>
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="flex items-end pb-1">

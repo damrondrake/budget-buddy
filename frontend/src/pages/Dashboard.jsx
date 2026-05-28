@@ -5,6 +5,7 @@ import { getSummary, getTransactions } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import EmptyState, { TransactionsEmptyIcon, BudgetsEmptyIcon } from '../components/EmptyState'
 import { formatMoney, formatDateShort } from '../utils/format'
+import { useUsers } from '../context/UsersContext'
 
 export default function Dashboard() {
   const now = new Date()
@@ -12,6 +13,7 @@ export default function Dashboard() {
   const [year, setYear] = useState(now.getFullYear())
   const [summary, setSummary] = useState(null)
   const [recentTxns, setRecentTxns] = useState([])
+  const { users } = useUsers()
 
   useEffect(() => {
     getSummary(month, year).then((res) => setSummary(res.data))
@@ -19,11 +21,13 @@ export default function Dashboard() {
   }, [month, year])
 
   function getBalanceText(balance) {
-    if (!balance) return null
-    const me = balance['Me'] || 0
-    if (Math.abs(me) < 0.01) return { text: 'All settled up', color: 'text-gray-500' }
-    if (me > 0) return { text: `Partner owes you ${formatMoney(me)}`, color: 'text-emerald-600' }
-    return { text: `You owe Partner ${formatMoney(Math.abs(me))}`, color: 'text-red-500' }
+    if (!balance || users.length < 2) return null
+    const u1 = users[0]
+    const u2 = users[1]
+    const val = balance[u1.name] || 0
+    if (Math.abs(val) < 0.01) return { text: 'All settled up', color: 'text-gray-500' }
+    if (val > 0) return { text: `${u2.name} owes ${u1.name} ${formatMoney(val)}`, color: 'text-emerald-600' }
+    return { text: `${u1.name} owes ${u2.name} ${formatMoney(Math.abs(val))}`, color: 'text-red-500' }
   }
 
   const balanceInfo = summary ? getBalanceText(summary.balance_between_users) : null

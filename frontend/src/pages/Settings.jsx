@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { getUsers, updateUser, getCategories, createCategory, deleteCategory } from '../api/client'
+import { updateUser, getCategories, createCategory, deleteCategory } from '../api/client'
+import { useUsers } from '../context/UsersContext'
 
 export default function Settings() {
-  const [users, setUsers] = useState([])
+  const { users, refreshUsers } = useUsers()
   const [userNames, setUserNames] = useState({})
   const [userMsg, setUserMsg] = useState(null)
   const [categories, setCategories] = useState([])
@@ -11,18 +12,14 @@ export default function Settings() {
   const [catMsg, setCatMsg] = useState(null)
 
   useEffect(() => {
-    fetchUsers()
     fetchCategories()
   }, [])
 
-  function fetchUsers() {
-    getUsers().then((res) => {
-      setUsers(res.data)
-      const names = {}
-      for (const u of res.data) names[u.id] = u.name
-      setUserNames(names)
-    })
-  }
+  useEffect(() => {
+    const names = {}
+    for (const u of users) names[u.id] = u.name
+    setUserNames(names)
+  }, [users])
 
   function fetchCategories() {
     getCategories().then((res) => setCategories(res.data))
@@ -38,7 +35,7 @@ export default function Settings() {
         }
       }
       setUserMsg({ type: 'success', text: 'Names updated successfully.' })
-      fetchUsers()
+      refreshUsers()
     } catch {
       setUserMsg({ type: 'error', text: 'Failed to update names.' })
     }
@@ -92,7 +89,7 @@ export default function Settings() {
           {users.map((u) => (
             <div key={u.id} className="flex flex-col sm:flex-row sm:items-center gap-2">
               <label className="text-sm font-medium text-gray-500 w-20 shrink-0">
-                {u.id === 1 ? 'You' : 'Partner'}
+                User {u.id}
               </label>
               <input
                 type="text"

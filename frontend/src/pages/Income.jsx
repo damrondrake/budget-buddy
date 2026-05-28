@@ -3,6 +3,7 @@ import { getIncome, createIncome, deleteIncome } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import EmptyState, { IncomeEmptyIcon } from '../components/EmptyState'
 import { formatMoney } from '../utils/format'
+import { useUsers } from '../context/UsersContext'
 
 export default function Income() {
   const now = new Date()
@@ -12,6 +13,9 @@ export default function Income() {
   const [formAmount, setFormAmount] = useState('')
   const [formSource, setFormSource] = useState('')
   const [formUser, setFormUser] = useState(1)
+  const { users } = useUsers()
+
+  const userMap = Object.fromEntries(users.map((u) => [u.id, u.name]))
 
   useEffect(() => {
     fetchIncome()
@@ -41,8 +45,11 @@ export default function Income() {
   }
 
   const total = income.reduce((sum, i) => sum + i.amount, 0)
-  const myTotal = income.filter((i) => i.user_id === 1).reduce((sum, i) => sum + i.amount, 0)
-  const partnerTotal = income.filter((i) => i.user_id === 2).reduce((sum, i) => sum + i.amount, 0)
+  const perUser = users.map((u) => ({
+    id: u.id,
+    name: u.name,
+    total: income.filter((i) => i.user_id === u.id).reduce((sum, i) => sum + i.amount, 0),
+  }))
 
   return (
     <div>
@@ -53,19 +60,17 @@ export default function Income() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className={`grid grid-cols-1 sm:grid-cols-${1 + perUser.length} gap-4 mb-6`}>
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <p className="text-sm text-gray-500 mb-1">Total Income</p>
           <p className="text-2xl font-bold text-emerald-600">{formatMoney(total)}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="text-sm text-gray-500 mb-1">Me</p>
-          <p className="text-2xl font-bold text-gray-900">{formatMoney(myTotal)}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="text-sm text-gray-500 mb-1">Partner</p>
-          <p className="text-2xl font-bold text-gray-900">{formatMoney(partnerTotal)}</p>
-        </div>
+        {perUser.map((u) => (
+          <div key={u.id} className="bg-white rounded-xl border border-gray-200 p-5">
+            <p className="text-sm text-gray-500 mb-1">{u.name}</p>
+            <p className="text-2xl font-bold text-gray-900">{formatMoney(u.total)}</p>
+          </div>
+        ))}
       </div>
 
       {/* Add income form */}
@@ -94,8 +99,9 @@ export default function Income() {
             onChange={(e) => setFormUser(e.target.value)}
             className="w-full sm:w-36 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
           >
-            <option value={1}>Me</option>
-            <option value={2}>Partner</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
           </select>
           <button
             type="submit"
