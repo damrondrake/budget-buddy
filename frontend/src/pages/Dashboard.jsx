@@ -2,11 +2,9 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { getSummary, getTransactions } from '../api/client'
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
+import MonthPicker from '../components/MonthPicker'
+import EmptyState, { TransactionsEmptyIcon, BudgetsEmptyIcon } from '../components/EmptyState'
+import { formatMoney, formatDateShort } from '../utils/format'
 
 export default function Dashboard() {
   const now = new Date()
@@ -20,43 +18,23 @@ export default function Dashboard() {
     getTransactions({ month, year }).then((res) => setRecentTxns(res.data.slice(0, 5)))
   }, [month, year])
 
-  function prevMonth() {
-    if (month === 1) { setMonth(12); setYear(year - 1) }
-    else setMonth(month - 1)
-  }
-
-  function nextMonth() {
-    if (month === 12) { setMonth(1); setYear(year + 1) }
-    else setMonth(month + 1)
-  }
-
-  // Balance logic
   function getBalanceText(balance) {
     if (!balance) return null
     const me = balance['Me'] || 0
     if (Math.abs(me) < 0.01) return { text: 'All settled up', color: 'text-gray-500' }
-    if (me > 0) return { text: `Partner owes you $${me.toFixed(2)}`, color: 'text-emerald-600' }
-    return { text: `You owe Partner $${Math.abs(me).toFixed(2)}`, color: 'text-red-500' }
+    if (me > 0) return { text: `Partner owes you ${formatMoney(me)}`, color: 'text-emerald-600' }
+    return { text: `You owe Partner ${formatMoney(Math.abs(me))}`, color: 'text-red-500' }
   }
 
   const balanceInfo = summary ? getBalanceText(summary.balance_between_users) : null
+  const budgeted = summary ? summary.by_category.filter((c) => c.budget_limit) : []
 
   return (
     <div>
-      {/* Header with month picker */}
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <div className="flex items-center gap-2">
-          <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors">
-            <ChevronLeft />
-          </button>
-          <span className="text-sm font-medium text-gray-700 w-36 text-center">
-            {MONTH_NAMES[month - 1]} {year}
-          </span>
-          <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors">
-            <ChevronRight />
-          </button>
-        </div>
+        <MonthPicker month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y) }} />
       </div>
 
       {!summary ? (
@@ -65,11 +43,11 @@ export default function Dashboard() {
         <>
           {/* Stat cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <StatCard label="Total Income" value={`$${summary.total_income.toLocaleString()}`} color="text-emerald-600" />
-            <StatCard label="Total Spent" value={`$${summary.total_spent.toLocaleString()}`} color="text-red-500" />
+            <StatCard label="Total Income" value={formatMoney(summary.total_income)} color="text-emerald-600" />
+            <StatCard label="Total Spent" value={formatMoney(summary.total_spent)} color="text-red-500" />
             <StatCard
               label="Remaining"
-              value={`$${summary.remaining.toLocaleString()}`}
+              value={formatMoney(summary.remaining)}
               color={summary.remaining >= 0 ? 'text-indigo-600' : 'text-red-500'}
             />
             <StatCard
@@ -81,25 +59,30 @@ export default function Dashboard() {
           </div>
 
           {/* Budget Progress */}
-          {summary.by_category.filter((c) => c.budget_limit).length > 0 && (
-            <section className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Budget Progress</h2>
+          <section className="mb-8">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Budget Progress</h2>
+            {budgeted.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {summary.by_category
-                  .filter((c) => c.budget_limit)
-                  .map((cat) => (
-                    <BudgetCard key={cat.category_id} cat={cat} />
-                  ))}
+                {budgeted.map((cat) => (
+                  <BudgetCard key={cat.category_id} cat={cat} />
+                ))}
               </div>
-            </section>
-          )}
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
+                <p className="text-gray-500 text-sm mb-2">No budgets set for this month.</p>
+                <Link to="/budgets" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                  Set up budgets
+                </Link>
+              </div>
+            )}
+          </section>
 
           {/* Two-column layout: chart + recent transactions */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Spending chart */}
-            {summary.by_category.length > 0 && (
-              <section className="bg-white rounded-xl border border-gray-200 p-5">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Spending by Category</h2>
+            <section className="bg-white rounded-xl border border-gray-200 p-5">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Spending by Category</h2>
+              {summary.by_category.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={summary.by_category} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                     <XAxis
@@ -113,7 +96,7 @@ export default function Dashboard() {
                       height={60}
                     />
                     <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-                    <Tooltip formatter={(v) => [`$${v.toFixed(2)}`, 'Spent']} />
+                    <Tooltip formatter={(v) => [formatMoney(v), 'Spent']} />
                     <Bar dataKey="spent" radius={[4, 4, 0, 0]}>
                       {summary.by_category.map((entry) => (
                         <Cell key={entry.category_id} fill={entry.color} />
@@ -121,8 +104,12 @@ export default function Dashboard() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-              </section>
-            )}
+              ) : (
+                <div className="flex items-center justify-center h-[280px] text-gray-400 text-sm">
+                  No spending data this month.
+                </div>
+              )}
+            </section>
 
             {/* Recent transactions */}
             <section className="bg-white rounded-xl border border-gray-200">
@@ -133,7 +120,12 @@ export default function Dashboard() {
                 </Link>
               </div>
               {recentTxns.length === 0 ? (
-                <p className="px-5 pb-5 text-gray-500 text-sm">No transactions this month.</p>
+                <div className="px-5 pb-6 pt-2">
+                  <EmptyState
+                    icon={<TransactionsEmptyIcon />}
+                    message="No transactions this month — add one to get started."
+                  />
+                </div>
               ) : (
                 <div className="divide-y divide-gray-100">
                   {recentTxns.map((t) => (
@@ -147,10 +139,10 @@ export default function Dashboard() {
                           {t.note || t.category_name}
                         </p>
                         <p className="text-xs text-gray-400">
-                          {formatDate(t.date)} &middot; {t.paid_by_name}
+                          {formatDateShort(t.date)} &middot; {t.paid_by_name}
                         </p>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900">${t.amount.toFixed(2)}</span>
+                      <span className="text-sm font-semibold text-gray-900">{formatMoney(t.amount)}</span>
                     </div>
                   ))}
                 </div>
@@ -184,8 +176,8 @@ function BudgetCard({ cat }) {
         <span className="text-sm font-medium text-gray-900">{cat.category_name}</span>
       </div>
       <div className="flex items-baseline justify-between mb-2">
-        <span className="text-lg font-bold text-gray-900">${cat.spent.toFixed(2)}</span>
-        <span className="text-sm text-gray-400">/ ${cat.budget_limit.toFixed(2)}</span>
+        <span className="text-lg font-bold text-gray-900">{formatMoney(cat.spent)}</span>
+        <span className="text-sm text-gray-400">/ {formatMoney(cat.budget_limit)}</span>
       </div>
       <div className="w-full bg-gray-100 rounded-full h-2">
         <div
@@ -195,7 +187,7 @@ function BudgetCard({ cat }) {
       </div>
       {pct >= 100 && (
         <p className="text-xs text-red-500 mt-1 font-medium">
-          Over budget by ${(cat.spent - cat.budget_limit).toFixed(2)}
+          Over budget by {formatMoney(cat.spent - cat.budget_limit)}
         </p>
       )}
     </div>
@@ -205,25 +197,4 @@ function BudgetCard({ cat }) {
 function getCategoryColor(txn, categories) {
   const match = categories.find((c) => c.category_id === txn.category_id)
   return match ? match.color : '#6B7280'
-}
-
-function formatDate(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
-function ChevronLeft() {
-  return (
-    <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-    </svg>
-  )
-}
-
-function ChevronRight() {
-  return (
-    <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-    </svg>
-  )
 }

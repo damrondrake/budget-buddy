@@ -3,11 +3,9 @@ import {
   getTransactions, createTransaction, updateTransaction, deleteTransaction,
   getCategories,
 } from '../api/client'
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
+import MonthPicker from '../components/MonthPicker'
+import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
+import { formatMoney, formatDate } from '../utils/format'
 
 const EMPTY_FORM = {
   amount: '',
@@ -39,16 +37,6 @@ export default function Transactions() {
 
   function fetchTransactions() {
     getTransactions({ month, year }).then((res) => setTransactions(res.data))
-  }
-
-  function prevMonth() {
-    if (month === 1) { setMonth(12); setYear(year - 1) }
-    else setMonth(month - 1)
-  }
-
-  function nextMonth() {
-    if (month === 12) { setMonth(1); setYear(year + 1) }
-    else setMonth(month + 1)
   }
 
   function openAdd() {
@@ -98,6 +86,7 @@ export default function Transactions() {
   }
 
   const catMap = Object.fromEntries(categories.map((c) => [c.id, c]))
+  const selectedCat = form.category_id ? catMap[parseInt(form.category_id)] : null
   const filtered = filterCat
     ? transactions.filter((t) => t.category_id === parseInt(filterCat))
     : transactions
@@ -109,18 +98,7 @@ export default function Transactions() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
         <div className="flex items-center gap-3">
-          {/* Month picker */}
-          <div className="flex items-center gap-1">
-            <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors">
-              <ChevronLeft />
-            </button>
-            <span className="text-sm font-medium text-gray-700 w-32 text-center">
-              {MONTH_NAMES[month - 1]} {year}
-            </span>
-            <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors">
-              <ChevronRight />
-            </button>
-          </div>
+          <MonthPicker month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y) }} />
           <button
             onClick={openAdd}
             className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
@@ -133,7 +111,10 @@ export default function Transactions() {
       {/* Modal form */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={closeForm}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               {editingId ? 'Edit Transaction' : 'Add Transaction'}
             </h2>
@@ -164,17 +145,25 @@ export default function Transactions() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                <select
-                  required
-                  value={form.category_id}
-                  onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                >
-                  <option value="">Select category</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  {selectedCat && (
+                    <span
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: selectedCat.color }}
+                    />
+                  )}
+                  <select
+                    required
+                    value={form.category_id}
+                    onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+                    className={`w-full py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none ${selectedCat ? 'pl-8 pr-3' : 'px-3'}`}
+                  >
+                    <option value="">Select category</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -246,20 +235,19 @@ export default function Transactions() {
 
       {/* Transaction list */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
-          No transactions {filterCat ? 'in this category' : 'yet'}. {!filterCat && 'Add one to get started.'}
-        </div>
+        <EmptyState
+          icon={<TransactionsEmptyIcon />}
+          message={filterCat ? 'No transactions in this category.' : 'No transactions this month — add one to get started.'}
+        />
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
           {filtered.map((t) => {
             const cat = catMap[t.category_id]
             return (
               <div key={t.id} className="flex items-center gap-3 px-4 py-3">
-                {/* Date */}
-                <span className="text-xs text-gray-400 w-16 shrink-0">
+                <span className="text-xs text-gray-400 w-20 shrink-0 hidden sm:block">
                   {formatDate(t.date)}
                 </span>
-                {/* Category dot + info */}
                 <span
                   className="w-2.5 h-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: cat?.color || '#6B7280' }}
@@ -269,14 +257,13 @@ export default function Transactions() {
                     {t.note || t.category_name}
                   </p>
                   <p className="text-xs text-gray-400">
+                    <span className="sm:hidden">{formatDate(t.date)} &middot; </span>
                     {t.category_name} &middot; {t.paid_by_name}{t.is_split ? ' (split)' : ''}
                   </p>
                 </div>
-                {/* Amount */}
                 <span className="text-sm font-semibold text-gray-900 shrink-0">
-                  ${t.amount.toFixed(2)}
+                  {formatMoney(t.amount)}
                 </span>
-                {/* Actions */}
                 <div className="flex gap-1 shrink-0">
                   <button
                     onClick={() => openEdit(t)}
@@ -308,31 +295,10 @@ export default function Transactions() {
         <div className="mt-4 flex justify-end">
           <div className="bg-white rounded-xl border border-gray-200 px-5 py-3">
             <span className="text-sm text-gray-500">Total: </span>
-            <span className="text-lg font-bold text-gray-900">${total.toFixed(2)}</span>
+            <span className="text-lg font-bold text-gray-900">{formatMoney(total)}</span>
           </div>
         </div>
       )}
     </div>
-  )
-}
-
-function formatDate(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
-function ChevronLeft() {
-  return (
-    <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-    </svg>
-  )
-}
-
-function ChevronRight() {
-  return (
-    <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-    </svg>
   )
 }

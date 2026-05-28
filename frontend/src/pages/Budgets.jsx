@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
 import { getBudgets, upsertBudget, getCategories, getSummary } from '../api/client'
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
+import MonthPicker from '../components/MonthPicker'
+import EmptyState, { BudgetsEmptyIcon } from '../components/EmptyState'
+import { formatMoney } from '../utils/format'
 
 export default function Budgets() {
   const now = new Date()
@@ -35,16 +33,6 @@ export default function Budgets() {
     })
   }
 
-  function prevMonth() {
-    if (month === 1) { setMonth(12); setYear(year - 1) }
-    else setMonth(month - 1)
-  }
-
-  function nextMonth() {
-    if (month === 12) { setMonth(1); setYear(year + 1) }
-    else setMonth(month + 1)
-  }
-
   async function handleSubmit(e) {
     e.preventDefault()
     await upsertBudget({
@@ -64,20 +52,10 @@ export default function Budgets() {
 
   return (
     <div>
-      {/* Header with month picker */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Budgets</h1>
-        <div className="flex items-center gap-1">
-          <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors">
-            <ChevronLeft />
-          </button>
-          <span className="text-sm font-medium text-gray-700 w-36 text-center">
-            {MONTH_NAMES[month - 1]} {year}
-          </span>
-          <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors">
-            <ChevronRight />
-          </button>
-        </div>
+        <MonthPicker month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y) }} />
       </div>
 
       {/* Set budget form */}
@@ -115,8 +93,11 @@ export default function Budgets() {
 
       {/* Budget cards */}
       {budgets.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500 mb-6">
-          No budgets set for this month. Use the form above to add one.
+        <div className="mb-6">
+          <EmptyState
+            icon={<BudgetsEmptyIcon />}
+            message="No budgets set for this month — use the form above to add one."
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
@@ -141,16 +122,16 @@ export default function Budgets() {
                 <div className="space-y-1 mb-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Budget</span>
-                    <span className="font-medium text-gray-900">${b.amount_limit.toFixed(2)}</span>
+                    <span className="font-medium text-gray-900">{formatMoney(b.amount_limit)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Spent</span>
-                    <span className="font-medium text-gray-900">${spent.toFixed(2)}</span>
+                    <span className="font-medium text-gray-900">{formatMoney(spent)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Remaining</span>
                     <span className={`font-medium ${remaining >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                      {remaining >= 0 ? `$${remaining.toFixed(2)}` : `-$${Math.abs(remaining).toFixed(2)}`}
+                      {remaining >= 0 ? formatMoney(remaining) : `-${formatMoney(Math.abs(remaining))}`}
                     </span>
                   </div>
                 </div>
@@ -165,7 +146,7 @@ export default function Budgets() {
 
                 {pct >= 100 && (
                   <p className="text-xs text-red-500 font-medium mt-1">
-                    Over budget by ${(spent - b.amount_limit).toFixed(2)}
+                    Over budget by {formatMoney(spent - b.amount_limit)}
                   </p>
                 )}
               </div>
@@ -188,7 +169,7 @@ export default function Budgets() {
                     <span className="text-sm text-gray-700">{c.name}</span>
                   </div>
                   <span className="text-sm text-gray-400">
-                    {spent > 0 ? `$${spent.toFixed(2)} spent` : 'No spending'}
+                    {spent > 0 ? `${formatMoney(spent)} spent` : 'No spending'}
                   </span>
                 </div>
               )
@@ -197,21 +178,5 @@ export default function Budgets() {
         </section>
       )}
     </div>
-  )
-}
-
-function ChevronLeft() {
-  return (
-    <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-    </svg>
-  )
-}
-
-function ChevronRight() {
-  return (
-    <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-    </svg>
   )
 }

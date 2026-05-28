@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
 import { getIncome, createIncome, deleteIncome } from '../api/client'
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
+import MonthPicker from '../components/MonthPicker'
+import EmptyState, { IncomeEmptyIcon } from '../components/EmptyState'
+import { formatMoney } from '../utils/format'
 
 export default function Income() {
   const now = new Date()
@@ -21,16 +19,6 @@ export default function Income() {
 
   function fetchIncome() {
     getIncome({ month, year }).then((res) => setIncome(res.data))
-  }
-
-  function prevMonth() {
-    if (month === 1) { setMonth(12); setYear(year - 1) }
-    else setMonth(month - 1)
-  }
-
-  function nextMonth() {
-    if (month === 12) { setMonth(1); setYear(year + 1) }
-    else setMonth(month + 1)
   }
 
   async function handleSubmit(e) {
@@ -58,35 +46,25 @@ export default function Income() {
 
   return (
     <div>
-      {/* Header with month picker */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Income</h1>
-        <div className="flex items-center gap-1">
-          <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors">
-            <ChevronLeft />
-          </button>
-          <span className="text-sm font-medium text-gray-700 w-36 text-center">
-            {MONTH_NAMES[month - 1]} {year}
-          </span>
-          <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors">
-            <ChevronRight />
-          </button>
-        </div>
+        <MonthPicker month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y) }} />
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <p className="text-sm text-gray-500 mb-1">Total Income</p>
-          <p className="text-2xl font-bold text-emerald-600">${total.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-emerald-600">{formatMoney(total)}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <p className="text-sm text-gray-500 mb-1">Me</p>
-          <p className="text-2xl font-bold text-gray-900">${myTotal.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-gray-900">{formatMoney(myTotal)}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <p className="text-sm text-gray-500 mb-1">Partner</p>
-          <p className="text-2xl font-bold text-gray-900">${partnerTotal.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-gray-900">{formatMoney(partnerTotal)}</p>
         </div>
       </div>
 
@@ -130,9 +108,10 @@ export default function Income() {
 
       {/* Income list */}
       {income.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-500">
-          No income entries this month. Use the form above to add one.
-        </div>
+        <EmptyState
+          icon={<IncomeEmptyIcon />}
+          message="No income entries this month — use the form above to add one."
+        />
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
           {income.map((i) => (
@@ -142,7 +121,7 @@ export default function Income() {
                 <p className="text-xs text-gray-400">{i.user_name}</p>
               </div>
               <span className="text-sm font-semibold text-emerald-600 shrink-0">
-                ${i.amount.toLocaleString()}
+                {formatMoney(i.amount)}
               </span>
               <button
                 onClick={() => handleDelete(i.id)}
@@ -158,21 +137,5 @@ export default function Income() {
         </div>
       )}
     </div>
-  )
-}
-
-function ChevronLeft() {
-  return (
-    <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-    </svg>
-  )
-}
-
-function ChevronRight() {
-  return (
-    <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-    </svg>
   )
 }
