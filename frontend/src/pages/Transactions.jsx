@@ -9,22 +9,26 @@ import { formatMoney, formatDate } from '../utils/format'
 import { downloadCsv } from '../utils/exportCsv'
 import { useUsers } from '../context/UsersContext'
 
-const EMPTY_FORM = {
-  amount: '',
-  category_id: '',
-  date: new Date().toISOString().slice(0, 10),
-  paid_by: 1,
-  is_split: false,
-  note: '',
+function emptyForm(users) {
+  return {
+    amount: '',
+    category_id: '',
+    date: new Date().toISOString().slice(0, 10),
+    paid_by: users[0]?.id ?? '',
+    is_split: false,
+    note: '',
+  }
 }
 
-const EMPTY_RECURRING = {
-  amount: '',
-  category_id: '',
-  paid_by: 1,
-  is_split: false,
-  day_of_month: '1',
-  note: '',
+function emptyRecurring(users) {
+  return {
+    amount: '',
+    category_id: '',
+    paid_by: users[0]?.id ?? '',
+    is_split: false,
+    day_of_month: '1',
+    note: '',
+  }
 }
 
 export default function Transactions() {
@@ -36,14 +40,14 @@ export default function Transactions() {
   const [filterCat, setFilterCat] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState(EMPTY_FORM)
   const { users } = useUsers()
+  const [form, setForm] = useState(() => emptyForm(users))
 
   // Recurring state
   const [recurring, setRecurring] = useState([])
   const [showRecurring, setShowRecurring] = useState(false)
   const [showRecurringForm, setShowRecurringForm] = useState(false)
-  const [recurringForm, setRecurringForm] = useState(EMPTY_RECURRING)
+  const [recurringForm, setRecurringForm] = useState(() => emptyRecurring(users))
   const [applying, setApplying] = useState(false)
 
   useEffect(() => {
@@ -65,7 +69,7 @@ export default function Transactions() {
 
   function openAdd() {
     setEditingId(null)
-    setForm(EMPTY_FORM)
+    setForm(emptyForm(users))
     setShowForm(true)
   }
 
@@ -118,7 +122,7 @@ export default function Transactions() {
       paid_by: parseInt(recurringForm.paid_by),
       day_of_month: parseInt(recurringForm.day_of_month),
     })
-    setRecurringForm(EMPTY_RECURRING)
+    setRecurringForm(emptyRecurring(users))
     setShowRecurringForm(false)
     fetchRecurring()
   }
@@ -215,7 +219,7 @@ export default function Transactions() {
                 {applying ? 'Applying...' : `Apply to ${new Date(year, month - 1).toLocaleString('default', { month: 'short' })} ${year}`}
               </button>
               <button
-                onClick={() => { setRecurringForm(EMPTY_RECURRING); setShowRecurringForm(true) }}
+                onClick={() => { setRecurringForm(emptyRecurring(users)); setShowRecurringForm(true) }}
                 className="px-3 py-1.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
               >
                 + Add Recurring

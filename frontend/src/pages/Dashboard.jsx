@@ -21,7 +21,7 @@ export default function Dashboard() {
   }, [month, year])
 
   function getBalanceText(balance) {
-    if (!balance || users.length < 2) return null
+    if (!balance || users.length < 2) return { text: '—', color: 'text-gray-400' }
     const u1 = users[0]
     const u2 = users[1]
     const val = balance[u1.name] || 0
@@ -30,7 +30,7 @@ export default function Dashboard() {
     return { text: `${u1.name} owes ${u2.name} ${formatMoney(Math.abs(val))}`, color: 'text-red-500' }
   }
 
-  const balanceInfo = summary ? getBalanceText(summary.balance_between_users) : null
+  const balanceInfo = summary ? getBalanceText(summary.balance_between_users) : { text: '—', color: 'text-gray-400' }
   const budgeted = summary ? summary.by_category.filter((c) => c.budget_limit) : []
 
   return (
