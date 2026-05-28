@@ -17,11 +17,17 @@ export const copyBudgets = (data) => api.post('/budgets/copy', data)
 
 // Categories
 export const getCategories = () => api.get('/categories')
+export const createCategory = (data) => api.post('/categories', data)
+export const deleteCategory = (id) => api.delete(`/categories/${id}`)
 
 // Income
 export const getIncome = (params) => api.get('/income', { params })
 export const createIncome = (data) => api.post('/income', data)
 export const deleteIncome = (id) => api.delete(`/income/${id}`)
+
+// Users
+export const getUsers = () => api.get('/users')
+export const updateUser = (id, data) => api.put(`/users/${id}`, data)
 
 // Summary
 export const getSummary = (month, year) => api.get(`/summary/${month}/${year}`)

@@ -8,3 +8,9 @@ class CategoryOut(BaseModel):
     icon: str | None
 
     model_config = {"from_attributes": True}
+
+
+class CategoryCreate(BaseModel):
+    name: str
+    color: str
+    icon: str | None = None
