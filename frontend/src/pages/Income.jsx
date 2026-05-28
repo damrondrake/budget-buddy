@@ -12,7 +12,7 @@ export default function Income() {
   const [income, setIncome] = useState([])
   const [formAmount, setFormAmount] = useState('')
   const [formSource, setFormSource] = useState('')
-  const [formUser, setFormUser] = useState(1)
+  const [formUser, setFormUser] = useState('')
   const { users } = useUsers()
 
   const userMap = Object.fromEntries(users.map((u) => [u.id, u.name]))
@@ -20,6 +20,12 @@ export default function Income() {
   useEffect(() => {
     fetchIncome()
   }, [month, year])
+
+  useEffect(() => {
+    if (!formUser && users.length > 0) {
+      setFormUser(users[0].id)
+    }
+  }, [users, formUser])
 
   function fetchIncome() {
     getIncome({ month, year }).then((res) => setIncome(res.data))
