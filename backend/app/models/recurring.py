@@ -14,6 +14,7 @@ class RecurringTransaction(Base):
     is_split: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     day_of_month: Mapped[int] = mapped_column(Integer, nullable=False)
     note: Mapped[str] = mapped_column(String(255), nullable=False)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
 
     category: Mapped["Category"] = relationship()
     paid_by_user: Mapped["User"] = relationship()

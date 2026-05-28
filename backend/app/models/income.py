@@ -13,5 +13,6 @@ class Income(Base):
     source: Mapped[str] = mapped_column(String(100), nullable=False)
     month: Mapped[int] = mapped_column(Integer, nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
 
     user: Mapped["User"] = relationship(back_populates="incomes")

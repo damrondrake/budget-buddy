@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.auth import get_current_account
 from app.models import Budget, Category
+from app.models.account import Account
 from app.schemas.budget import BudgetCreate, BudgetOut, BudgetCopy, BudgetCopyResult
 
 router = APIRouter(prefix="/api/budgets", tags=["budgets"])
@@ -24,16 +26,24 @@ def list_budgets(
     month: int = Query(...),
     year: int = Query(...),
     db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
 ):
-    budgets = db.query(Budget).filter(Budget.month == month, Budget.year == year).all()
+    budgets = db.query(Budget).filter(
+        Budget.account_id == account.id, Budget.month == month, Budget.year == year
+    ).all()
     return [_enrich(b) for b in budgets]
 
 
 @router.post("", response_model=BudgetOut, status_code=201)
-def upsert_budget(data: BudgetCreate, db: Session = Depends(get_db)):
-    if not db.get(Category, data.category_id):
+def upsert_budget(
+    data: BudgetCreate,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    if not db.query(Category).filter(Category.id == data.category_id, Category.account_id == account.id).first():
         raise HTTPException(404, "Category not found")
     existing = db.query(Budget).filter(
+        Budget.account_id == account.id,
         Budget.category_id == data.category_id,
         Budget.month == data.month,
         Budget.year == data.year,
@@ -43,7 +53,7 @@ def upsert_budget(data: BudgetCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(existing)
         return _enrich(existing)
-    b = Budget(**data.model_dump())
+    b = Budget(**data.model_dump(), account_id=account.id)
     db.add(b)
     db.commit()
     db.refresh(b)
@@ -51,9 +61,15 @@ def upsert_budget(data: BudgetCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/copy", response_model=BudgetCopyResult)
-def copy_budgets(data: BudgetCopy, db: Session = Depends(get_db)):
+def copy_budgets(
+    data: BudgetCopy,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
     source = db.query(Budget).filter(
-        Budget.month == data.from_month, Budget.year == data.from_year
+        Budget.account_id == account.id,
+        Budget.month == data.from_month,
+        Budget.year == data.from_year,
     ).all()
     if not source:
         raise HTTPException(404, "No budgets found from the source month")
@@ -61,7 +77,9 @@ def copy_budgets(data: BudgetCopy, db: Session = Depends(get_db)):
     existing_cats = {
         b.category_id
         for b in db.query(Budget).filter(
-            Budget.month == data.to_month, Budget.year == data.to_year
+            Budget.account_id == account.id,
+            Budget.month == data.to_month,
+            Budget.year == data.to_year,
         ).all()
     }
 
@@ -73,6 +91,7 @@ def copy_budgets(data: BudgetCopy, db: Session = Depends(get_db)):
                 month=data.to_month,
                 year=data.to_year,
                 amount_limit=b.amount_limit,
+                account_id=account.id,
             ))
             copied += 1
 

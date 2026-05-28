@@ -12,5 +12,6 @@ class Budget(Base):
     month: Mapped[int] = mapped_column(Integer, nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     amount_limit: Mapped[float] = mapped_column(Float, nullable=False)
+    account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
 
     category: Mapped["Category"] = relationship(back_populates="budgets")

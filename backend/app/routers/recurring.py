@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.auth import get_current_account
 from app.models import RecurringTransaction, Transaction, Category, User
+from app.models.account import Account
 from app.schemas.recurring import RecurringCreate, RecurringOut
 from app.schemas.transaction import TransactionOut
 
@@ -26,19 +28,28 @@ def _enrich(r: RecurringTransaction) -> RecurringOut:
 
 
 @router.get("", response_model=list[RecurringOut])
-def list_recurring(db: Session = Depends(get_db)):
-    return [_enrich(r) for r in db.query(RecurringTransaction).order_by(RecurringTransaction.id).all()]
+def list_recurring(
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    return [_enrich(r) for r in db.query(RecurringTransaction).filter(
+        RecurringTransaction.account_id == account.id
+    ).order_by(RecurringTransaction.id).all()]
 
 
 @router.post("", response_model=RecurringOut, status_code=201)
-def create_recurring(data: RecurringCreate, db: Session = Depends(get_db)):
-    if not db.get(Category, data.category_id):
+def create_recurring(
+    data: RecurringCreate,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    if not db.query(Category).filter(Category.id == data.category_id, Category.account_id == account.id).first():
         raise HTTPException(404, "Category not found")
-    if not db.get(User, data.paid_by):
+    if not db.query(User).filter(User.id == data.paid_by, User.account_id == account.id).first():
         raise HTTPException(404, "User not found")
     if not 1 <= data.day_of_month <= 31:
         raise HTTPException(400, "day_of_month must be between 1 and 31")
-    r = RecurringTransaction(**data.model_dump())
+    r = RecurringTransaction(**data.model_dump(), account_id=account.id)
     db.add(r)
     db.commit()
     db.refresh(r)
@@ -46,8 +57,14 @@ def create_recurring(data: RecurringCreate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{recurring_id}", status_code=204)
-def delete_recurring(recurring_id: int, db: Session = Depends(get_db)):
-    r = db.get(RecurringTransaction, recurring_id)
+def delete_recurring(
+    recurring_id: int,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    r = db.query(RecurringTransaction).filter(
+        RecurringTransaction.id == recurring_id, RecurringTransaction.account_id == account.id
+    ).first()
     if not r:
         raise HTTPException(404, "Recurring transaction not found")
     db.delete(r)
@@ -59,11 +76,14 @@ def apply_recurring(
     month: int = Query(...),
     year: int = Query(...),
     db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
 ):
-    """Create transactions from recurring templates for the given month, skipping duplicates."""
     from sqlalchemy import extract
+    import calendar
 
-    recurring = db.query(RecurringTransaction).all()
+    recurring = db.query(RecurringTransaction).filter(
+        RecurringTransaction.account_id == account.id
+    ).all()
     created = []
 
     for r in recurring:
@@ -71,6 +91,7 @@ def apply_recurring(
             db.query(Transaction)
             .filter(
                 Transaction.recurring_id == r.id,
+                Transaction.account_id == account.id,
                 extract("month", Transaction.date) == month,
                 extract("year", Transaction.date) == year,
             )
@@ -79,7 +100,6 @@ def apply_recurring(
         if already_exists:
             continue
 
-        import calendar
         last_day = calendar.monthrange(year, month)[1]
         day = min(r.day_of_month, last_day)
 
@@ -92,6 +112,7 @@ def apply_recurring(
             note=r.note,
             is_recurring=True,
             recurring_id=r.id,
+            account_id=account.id,
         )
         db.add(t)
         created.append(t)

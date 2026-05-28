@@ -5,22 +5,30 @@ from sqlalchemy import extract
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.auth import get_current_account
 from app.models import Transaction, Budget, Income, Category, User
+from app.models.account import Account
 from app.schemas.summary import SummaryOut, CategorySpending
 
 router = APIRouter(prefix="/api/summary", tags=["summary"])
 
 
 @router.get("/{month}/{year}", response_model=SummaryOut)
-def get_summary(month: int, year: int, db: Session = Depends(get_db)):
-    # Income
-    incomes = db.query(Income).filter(Income.month == month, Income.year == year).all()
+def get_summary(
+    month: int,
+    year: int,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    incomes = db.query(Income).filter(
+        Income.account_id == account.id, Income.month == month, Income.year == year
+    ).all()
     total_income = sum(i.amount for i in incomes)
 
-    # Transactions
     transactions = (
         db.query(Transaction)
         .filter(
+            Transaction.account_id == account.id,
             extract("month", Transaction.date) == month,
             extract("year", Transaction.date) == year,
         )
@@ -28,18 +36,16 @@ def get_summary(month: int, year: int, db: Session = Depends(get_db)):
     )
     total_spent = sum(t.amount for t in transactions)
 
-    # Spending per category
     cat_spending: dict[int, float] = defaultdict(float)
     for t in transactions:
         cat_spending[t.category_id] += t.amount
 
-    # Budgets for this month
-    budgets = db.query(Budget).filter(Budget.month == month, Budget.year == year).all()
+    budgets = db.query(Budget).filter(
+        Budget.account_id == account.id, Budget.month == month, Budget.year == year
+    ).all()
     budget_map = {b.category_id: b.amount_limit for b in budgets}
 
-    # All categories for complete picture
-    categories = db.query(Category).all()
-    cat_map = {c.id: c for c in categories}
+    categories = db.query(Category).filter(Category.account_id == account.id).all()
 
     by_category = []
     for cat in categories:
@@ -55,8 +61,7 @@ def get_summary(month: int, year: int, db: Session = Depends(get_db)):
                 )
             )
 
-    # Balance between users: tracks how much each user has overpaid on split expenses
-    users = db.query(User).all()
+    users = db.query(User).filter(User.account_id == account.id).all()
     user_map = {u.id: u.name for u in users}
     net: dict[str, float] = {u.name: 0.0 for u in users}
     for t in transactions:
@@ -65,10 +70,9 @@ def get_summary(month: int, year: int, db: Session = Depends(get_db)):
             share = t.amount / len(users)
             for name in net:
                 if name == payer:
-                    net[name] += t.amount - share  # paid more than their share
+                    net[name] += t.amount - share
                 else:
-                    net[name] -= share  # owes this much
-        # Non-split: full cost on the payer, no balance effect
+                    net[name] -= share
 
     balance = {name: round(val, 2) for name, val in net.items()}
 

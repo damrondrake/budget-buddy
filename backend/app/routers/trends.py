@@ -7,14 +7,20 @@ from sqlalchemy import extract
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.auth import get_current_account
 from app.models import Transaction, Income, Category
+from app.models.account import Account
 from app.schemas.trends import TrendsOut, MonthData, CategoryMonthSpending
 
 router = APIRouter(prefix="/api/trends", tags=["trends"])
 
 
 @router.get("", response_model=TrendsOut)
-def get_trends(months: int = Query(6, ge=1, le=24), db: Session = Depends(get_db)):
+def get_trends(
+    months: int = Query(6, ge=1, le=24),
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
     today = date.today()
     periods = []
     for i in range(months - 1, -1, -1):
@@ -25,17 +31,23 @@ def get_trends(months: int = Query(6, ge=1, le=24), db: Session = Depends(get_db
             y -= 1
         periods.append((m, y))
 
-    categories = db.query(Category).all()
+    categories = db.query(Category).filter(Category.account_id == account.id).all()
     cat_map = {c.id: c for c in categories}
 
     result = []
     for m, y in periods:
         txns = (
             db.query(Transaction)
-            .filter(extract("month", Transaction.date) == m, extract("year", Transaction.date) == y)
+            .filter(
+                Transaction.account_id == account.id,
+                extract("month", Transaction.date) == m,
+                extract("year", Transaction.date) == y,
+            )
             .all()
         )
-        incomes = db.query(Income).filter(Income.month == m, Income.year == y).all()
+        incomes = db.query(Income).filter(
+            Income.account_id == account.id, Income.month == m, Income.year == y
+        ).all()
 
         total_spent = sum(t.amount for t in txns)
         total_income = sum(i.amount for i in incomes)

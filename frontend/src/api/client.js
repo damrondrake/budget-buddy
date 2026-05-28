@@ -1,8 +1,30 @@
 import axios from 'axios'
 
+const TOKEN_KEY = 'budgetbuddy_token'
+
 const api = axios.create({
   baseURL: 'http://localhost:8000/api',
 })
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status
+    const url = error.config?.url || ''
+    if (status === 401 && !url.includes('/auth/login') && !url.includes('/auth/register')) {
+      window.dispatchEvent(new Event('auth:unauthorized'))
+    }
+    return Promise.reject(error)
+  },
+)
 
 // Transactions
 export const getTransactions = (params) => api.get('/transactions', { params })

@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.auth import get_current_account
 from app.models import Transaction, Category, User
+from app.models.account import Account
 from app.schemas.transaction import TransactionCreate, TransactionUpdate, TransactionOut
 
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
@@ -30,8 +32,9 @@ def list_transactions(
     year: int | None = Query(None),
     category_id: int | None = Query(None),
     db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
 ):
-    q = db.query(Transaction)
+    q = db.query(Transaction).filter(Transaction.account_id == account.id)
     if month is not None and year is not None:
         from sqlalchemy import extract
         q = q.filter(extract("month", Transaction.date) == month, extract("year", Transaction.date) == year)
@@ -41,12 +44,16 @@ def list_transactions(
 
 
 @router.post("", response_model=TransactionOut, status_code=201)
-def create_transaction(data: TransactionCreate, db: Session = Depends(get_db)):
-    if not db.get(Category, data.category_id):
+def create_transaction(
+    data: TransactionCreate,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    if not db.query(Category).filter(Category.id == data.category_id, Category.account_id == account.id).first():
         raise HTTPException(404, "Category not found")
-    if not db.get(User, data.paid_by):
+    if not db.query(User).filter(User.id == data.paid_by, User.account_id == account.id).first():
         raise HTTPException(404, "User not found")
-    t = Transaction(**data.model_dump())
+    t = Transaction(**data.model_dump(), account_id=account.id)
     db.add(t)
     db.commit()
     db.refresh(t)
@@ -54,15 +61,22 @@ def create_transaction(data: TransactionCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{transaction_id}", response_model=TransactionOut)
-def update_transaction(transaction_id: int, data: TransactionUpdate, db: Session = Depends(get_db)):
-    t = db.get(Transaction, transaction_id)
+def update_transaction(
+    transaction_id: int,
+    data: TransactionUpdate,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    t = db.query(Transaction).filter(Transaction.id == transaction_id, Transaction.account_id == account.id).first()
     if not t:
         raise HTTPException(404, "Transaction not found")
     updates = data.model_dump(exclude_unset=True)
-    if "category_id" in updates and not db.get(Category, updates["category_id"]):
-        raise HTTPException(404, "Category not found")
-    if "paid_by" in updates and not db.get(User, updates["paid_by"]):
-        raise HTTPException(404, "User not found")
+    if "category_id" in updates:
+        if not db.query(Category).filter(Category.id == updates["category_id"], Category.account_id == account.id).first():
+            raise HTTPException(404, "Category not found")
+    if "paid_by" in updates:
+        if not db.query(User).filter(User.id == updates["paid_by"], User.account_id == account.id).first():
+            raise HTTPException(404, "User not found")
     for k, v in updates.items():
         setattr(t, k, v)
     db.commit()
@@ -71,8 +85,12 @@ def update_transaction(transaction_id: int, data: TransactionUpdate, db: Session
 
 
 @router.delete("/{transaction_id}", status_code=204)
-def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
-    t = db.get(Transaction, transaction_id)
+def delete_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    t = db.query(Transaction).filter(Transaction.id == transaction_id, Transaction.account_id == account.id).first()
     if not t:
         raise HTTPException(404, "Transaction not found")
     db.delete(t)
