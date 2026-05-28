@@ -89,11 +89,23 @@ def upgrade() -> None:
     # The original schema put a global UNIQUE on users.name and categories.name.
     # With per-account scoping those names only need to be unique within an account,
     # so drop the global constraints to make seeding new accounts possible.
-    naming_convention = {"uq": "uq_%(table_name)s_%(column_0_name)s"}
-    with op.batch_alter_table("users", naming_convention=naming_convention) as batch_op:
-        batch_op.drop_constraint("uq_users_name", type_="unique")
-    with op.batch_alter_table("categories", naming_convention=naming_convention) as batch_op:
-        batch_op.drop_constraint("uq_categories_name", type_="unique")
+    # Handle dialects separately: PG names the constraint <table>_<col>_key by default
+    # and supports IF EXISTS; SQLite can't drop constraints in place at all and needs
+    # batch_alter_table to recreate the table.
+    dialect = op.get_bind().dialect.name
+    if dialect == "postgresql":
+        for table in ("users", "categories"):
+            op.execute(f'ALTER TABLE {table} DROP CONSTRAINT IF EXISTS {table}_name_key')
+            op.execute(f'ALTER TABLE {table} DROP CONSTRAINT IF EXISTS uq_{table}_name')
+    elif dialect == "sqlite":
+        naming_convention = {"uq": "uq_%(table_name)s_%(column_0_name)s"}
+        for table in ("users", "categories"):
+            try:
+                with op.batch_alter_table(table, naming_convention=naming_convention) as batch_op:
+                    batch_op.drop_constraint(f"uq_{table}_name", type_="unique")
+            except Exception:
+                # Constraint already absent (e.g. fresh dev DB) — nothing to do.
+                pass
 
 
 def downgrade() -> None:
