@@ -5,6 +5,7 @@ import {
 } from 'recharts'
 import { getTrends } from '../api/client'
 import { formatMoney } from '../utils/format'
+import { downloadCsv } from '../utils/exportCsv'
 
 export default function Trends() {
   const [data, setData] = useState(null)
@@ -53,7 +54,30 @@ export default function Trends() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Spending Trends</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Spending Trends</h1>
+        <button
+          onClick={() => {
+            const catNames = [...allCats.values()].map((c) => c.name)
+            const headers = ['Month', 'Total Income', 'Total Spent', 'Amount Saved', ...catNames]
+            const rows = months.map((m) => {
+              const catAmounts = catNames.map((name) => {
+                const found = m.categories.find((c) => c.category_name === name)
+                return (found ? found.amount : 0).toFixed(2)
+              })
+              return [
+                m.label, m.total_income.toFixed(2), m.total_spent.toFixed(2),
+                (m.total_income - m.total_spent).toFixed(2), ...catAmounts,
+              ]
+            })
+            downloadCsv('spending-trends.csv', headers, rows)
+          }}
+          disabled={!data}
+          className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Export CSV
+        </button>
+      </div>
 
       {/* Monthly Summary Stats */}
       {selected && (

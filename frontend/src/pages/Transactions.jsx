@@ -6,6 +6,7 @@ import {
 import MonthPicker from '../components/MonthPicker'
 import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
 import { formatMoney, formatDate } from '../utils/format'
+import { downloadCsv } from '../utils/exportCsv'
 
 const EMPTY_FORM = {
   amount: '',
@@ -159,6 +160,21 @@ export default function Transactions() {
         <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
         <div className="flex items-center gap-3">
           <MonthPicker month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y) }} />
+          <button
+            onClick={() => {
+              const rows = filtered.map((t) => [
+                t.date, t.category_name, t.note || '', t.paid_by_name,
+                t.is_split ? 'Yes' : 'No', t.amount.toFixed(2),
+              ])
+              const monthLabel = new Date(year, month - 1).toLocaleString('default', { month: 'long' })
+              downloadCsv(`transactions-${monthLabel}-${year}.csv`,
+                ['Date', 'Category', 'Note', 'Paid By', 'Split', 'Amount'], rows)
+            }}
+            disabled={filtered.length === 0}
+            className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Export CSV
+          </button>
           <button
             onClick={openAdd}
             className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
