@@ -17,6 +17,7 @@ def _enrich(b: Budget) -> BudgetOut:
         month=b.month,
         year=b.year,
         amount_limit=b.amount_limit,
+        note=b.note,
         category_name=b.category.name if b.category else None,
     )
 
@@ -50,6 +51,7 @@ def upsert_budget(
     ).first()
     if existing:
         existing.amount_limit = data.amount_limit
+        existing.note = data.note
         db.commit()
         db.refresh(existing)
         return _enrich(existing)
@@ -91,6 +93,7 @@ def copy_budgets(
                 month=data.to_month,
                 year=data.to_year,
                 amount_limit=b.amount_limit,
+                note=b.note,
                 account_id=account.id,
             ))
             copied += 1

@@ -5,7 +5,7 @@ from app.database import get_db
 from app.auth import get_current_account
 from app.models import Income, User
 from app.models.account import Account
-from app.schemas.income import IncomeCreate, IncomeOut
+from app.schemas.income import IncomeCreate, IncomeUpdate, IncomeOut
 
 router = APIRouter(prefix="/api/income", tags=["income"])
 
@@ -45,6 +45,26 @@ def create_income(
         raise HTTPException(404, "User not found")
     i = Income(**data.model_dump(), account_id=account.id)
     db.add(i)
+    db.commit()
+    db.refresh(i)
+    return _enrich(i)
+
+
+@router.put("/{income_id}", response_model=IncomeOut)
+def update_income(
+    income_id: int,
+    data: IncomeUpdate,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    i = db.query(Income).filter(Income.id == income_id, Income.account_id == account.id).first()
+    if not i:
+        raise HTTPException(404, "Income entry not found")
+    if not db.query(User).filter(User.id == data.user_id, User.account_id == account.id).first():
+        raise HTTPException(404, "User not found")
+    i.user_id = data.user_id
+    i.amount = data.amount
+    i.source = data.source
     db.commit()
     db.refresh(i)
     return _enrich(i)

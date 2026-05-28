@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getIncome, createIncome, deleteIncome } from '../api/client'
+import { getIncome, createIncome, updateIncome, deleteIncome } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import EmptyState, { IncomeEmptyIcon } from '../components/EmptyState'
 import { formatMoney } from '../utils/format'
@@ -13,6 +13,7 @@ export default function Income() {
   const [formAmount, setFormAmount] = useState('')
   const [formSource, setFormSource] = useState('')
   const [formUser, setFormUser] = useState('')
+  const [editingId, setEditingId] = useState(null)
   const { users } = useUsers()
 
   const userMap = Object.fromEntries(users.map((u) => [u.id, u.name]))
@@ -33,16 +34,39 @@ export default function Income() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    await createIncome({
-      amount: parseFloat(formAmount),
-      source: formSource,
-      user_id: parseInt(formUser),
-      month,
-      year,
-    })
+    const amount = parseFloat(formAmount)
+    const userId = parseInt(formUser)
+    if (editingId) {
+      await updateIncome(editingId, {
+        amount,
+        source: formSource,
+        user_id: userId,
+      })
+    } else {
+      await createIncome({
+        amount,
+        source: formSource,
+        user_id: userId,
+        month,
+        year,
+      })
+    }
+    resetForm()
+    fetchIncome()
+  }
+
+  function resetForm() {
     setFormAmount('')
     setFormSource('')
-    fetchIncome()
+    setEditingId(null)
+    if (users.length > 0) setFormUser(users[0].id)
+  }
+
+  function startEdit(entry) {
+    setEditingId(entry.id)
+    setFormAmount(entry.amount)
+    setFormSource(entry.source)
+    setFormUser(entry.user_id)
   }
 
   function handleDelete(id) {
@@ -79,9 +103,11 @@ export default function Income() {
         ))}
       </div>
 
-      {/* Add income form */}
+      {/* Add/edit income form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Add Income</h2>
+        <h2 className="text-sm font-semibold text-gray-900 mb-3">
+          {editingId ? 'Edit Income' : 'Add Income'}
+        </h2>
         <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="number"
@@ -113,8 +139,17 @@ export default function Income() {
             type="submit"
             className="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shrink-0"
           >
-            Add
+            {editingId ? 'Save' : 'Add'}
           </button>
+          {editingId && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors shrink-0"
+            >
+              Cancel
+            </button>
+          )}
         </div>
       </form>
 
@@ -135,15 +170,26 @@ export default function Income() {
               <span className="text-sm font-semibold text-emerald-600 shrink-0">
                 {formatMoney(i.amount)}
               </span>
-              <button
-                onClick={() => handleDelete(i.id)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
-                title="Delete"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
+              <div className="flex gap-1 shrink-0">
+                <button
+                  onClick={() => startEdit(i)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                  title="Edit"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => handleDelete(i.id)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  title="Delete"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
             </div>
           ))}
         </div>

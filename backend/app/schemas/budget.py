@@ -6,6 +6,7 @@ class BudgetCreate(BaseModel):
     month: int
     year: int
     amount_limit: float
+    note: str | None = None
 
 
 class BudgetOut(BaseModel):
@@ -14,6 +15,7 @@ class BudgetOut(BaseModel):
     month: int
     year: int
     amount_limit: float
+    note: str | None = None
     category_name: str | None = None
 
     model_config = {"from_attributes": True}

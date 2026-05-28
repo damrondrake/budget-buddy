@@ -9,6 +9,12 @@ class IncomeCreate(BaseModel):
     year: int
 
 
+class IncomeUpdate(BaseModel):
+    user_id: int
+    amount: float
+    source: str
+
+
 class IncomeOut(BaseModel):
     id: int
     user_id: int

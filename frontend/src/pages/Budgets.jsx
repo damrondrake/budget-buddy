@@ -13,6 +13,8 @@ export default function Budgets() {
   const [spending, setSpending] = useState({})
   const [formCatId, setFormCatId] = useState('')
   const [formAmount, setFormAmount] = useState('')
+  const [formNote, setFormNote] = useState('')
+  const [formSubcategory, setFormSubcategory] = useState('')
   const [copyMsg, setCopyMsg] = useState(null)
 
   useEffect(() => {
@@ -36,14 +38,21 @@ export default function Budgets() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    const sub = formSubcategory.trim()
+    const note = formNote.trim()
+    const combinedNote =
+      sub && note ? `${sub}: ${note}` : sub || note || null
     await upsertBudget({
       category_id: parseInt(formCatId),
       month,
       year,
       amount_limit: parseFloat(formAmount),
+      note: combinedNote,
     })
     setFormCatId('')
     setFormAmount('')
+    setFormNote('')
+    setFormSubcategory('')
     fetchData()
   }
 
@@ -69,6 +78,8 @@ export default function Budgets() {
   const budgetedCatIds = new Set(budgets.map((b) => b.category_id))
   const catMap = Object.fromEntries(categories.map((c) => [c.id, c]))
   const unbudgeted = categories.filter((c) => !budgetedCatIds.has(c.id))
+  const selectedCatName = formCatId ? catMap[parseInt(formCatId)]?.name : null
+  const showSubcategory = selectedCatName === 'Utilities'
 
   return (
     <div>
@@ -79,8 +90,8 @@ export default function Budgets() {
       </div>
 
       {/* Set budget form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Set a Budget</h2>
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 mb-6 space-y-3">
+        <h2 className="text-sm font-semibold text-gray-900">Set a Budget</h2>
         <div className="flex flex-col sm:flex-row gap-3">
           <select
             required
@@ -109,6 +120,22 @@ export default function Budgets() {
             Save
           </button>
         </div>
+        {showSubcategory && (
+          <input
+            type="text"
+            value={formSubcategory}
+            onChange={(e) => setFormSubcategory(e.target.value)}
+            placeholder="Subcategory (e.g. Electric, Gas, Trash, Water)"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          />
+        )}
+        <input
+          type="text"
+          value={formNote}
+          onChange={(e) => setFormNote(e.target.value)}
+          placeholder="Note (optional, e.g. car repairs, misc)"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+        />
       </form>
 
       {/* Copy feedback */}
@@ -148,12 +175,17 @@ export default function Budgets() {
 
             return (
               <div key={b.id} className="bg-white rounded-xl border border-gray-200 p-5">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-start gap-2 mb-3">
                   <span
-                    className="w-3 h-3 rounded-full shrink-0"
+                    className="w-3 h-3 rounded-full shrink-0 mt-1"
                     style={{ backgroundColor: cat?.color || '#6B7280' }}
                   />
-                  <span className="text-sm font-semibold text-gray-900">{b.category_name}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">{b.category_name}</p>
+                    {b.note && (
+                      <p className="text-xs text-gray-400 truncate">{b.note}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-1 mb-3">

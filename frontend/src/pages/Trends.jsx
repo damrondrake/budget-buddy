@@ -93,6 +93,7 @@ export default function Trends() {
             label="Savings Rate"
             value={`${savingsRate}%`}
             color={saved >= 0 ? 'text-indigo-600' : 'text-red-500'}
+            tooltip="Savings Rate = (Income - Spending) / Income × 100. This shows what percentage of your income you kept this month."
           />
         </div>
       )}
@@ -196,10 +197,25 @@ export default function Trends() {
   )
 }
 
-function StatCard({ label, value, color }) {
+function StatCard({ label, value, color, tooltip }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <p className="text-sm text-gray-500 mb-1">{label}</p>
+      <div className="flex items-center gap-1 mb-1">
+        <p className="text-sm text-gray-500">{label}</p>
+        {tooltip && (
+          <span
+            tabIndex={0}
+            aria-label={tooltip}
+            title={tooltip}
+            className="group relative inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 cursor-help text-[10px] font-bold"
+          >
+            i
+            <span className="invisible group-hover:visible group-focus:visible absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 px-3 py-2 bg-gray-900 text-white text-xs font-normal rounded-lg shadow-lg z-10 leading-snug pointer-events-none">
+              {tooltip}
+            </span>
+          </span>
+        )}
+      </div>
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
     </div>
   )

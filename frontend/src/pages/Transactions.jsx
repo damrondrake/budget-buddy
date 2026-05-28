@@ -168,13 +168,18 @@ export default function Transactions() {
           <MonthPicker month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y) }} />
           <button
             onClick={() => {
-              const rows = filtered.map((t) => [
-                t.date, t.category_name, t.note || '', t.paid_by_name,
-                t.is_split ? 'Yes' : 'No', t.amount.toFixed(2),
-              ])
+              const sorted = [...filtered].sort((a, b) => a.date.localeCompare(b.date))
+              let balance = 0
+              const rows = sorted.map((t) => {
+                balance += t.amount
+                return [
+                  t.date, t.category_name, t.note || '', t.paid_by_name,
+                  t.is_split ? 'Yes' : 'No', t.amount.toFixed(2), balance.toFixed(2),
+                ]
+              })
               const monthLabel = new Date(year, month - 1).toLocaleString('default', { month: 'long' })
               downloadCsv(`transactions-${monthLabel}-${year}.csv`,
-                ['Date', 'Category', 'Note', 'Paid By', 'Split', 'Amount'], rows)
+                ['Date', 'Category', 'Note', 'Paid By', 'Split', 'Amount', 'Running Balance'], rows)
             }}
             disabled={filtered.length === 0}
             className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
