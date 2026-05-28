@@ -432,8 +432,9 @@ export default function Transactions() {
                     onChange={(e) => setForm({ ...form, paid_by: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                   >
-                    <option value={1}>Me</option>
-                    <option value={2}>Partner</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="flex items-end pb-1">
