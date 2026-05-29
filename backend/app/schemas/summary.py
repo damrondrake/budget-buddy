@@ -17,3 +17,9 @@ class SummaryOut(BaseModel):
     remaining: float
     balance_between_users: dict[str, float]
     by_category: list[CategorySpending]
+
+
+class CumulativeOut(BaseModel):
+    total_income: float
+    total_spending: float
+    net_balance: float

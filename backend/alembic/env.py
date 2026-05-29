@@ -15,7 +15,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 from app.database import Base, SQLALCHEMY_DATABASE_URL
-from app.models import Account, User, Category, Budget, RecurringTransaction, Transaction, Income  # noqa: F401
+from app.models import Account, User, Category, Budget, BudgetLineItem, RecurringTransaction, Transaction, Income  # noqa: F401
 
 # Use the same DB URL the app uses, so DATABASE_URL drives migrations too.
 config.set_main_option("sqlalchemy.url", SQLALCHEMY_DATABASE_URL)

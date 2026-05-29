@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { getSummary, getTransactions } from '../api/client'
+import { getSummary, getTransactions, getCumulative } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import EmptyState, { TransactionsEmptyIcon, BudgetsEmptyIcon } from '../components/EmptyState'
 import { formatMoney, formatDateShort } from '../utils/format'
@@ -13,12 +13,17 @@ export default function Dashboard() {
   const [year, setYear] = useState(now.getFullYear())
   const [summary, setSummary] = useState(null)
   const [recentTxns, setRecentTxns] = useState([])
+  const [cumulative, setCumulative] = useState(null)
   const { users } = useUsers()
 
   useEffect(() => {
     getSummary(month, year).then((res) => setSummary(res.data))
     getTransactions({ month, year }).then((res) => setRecentTxns(res.data.slice(0, 5)))
   }, [month, year])
+
+  useEffect(() => {
+    getCumulative().then((res) => setCumulative(res.data))
+  }, [])
 
   function getBalanceText(balance) {
     if (!balance || users.length < 2) return { text: '—', color: 'text-gray-400' }
@@ -46,7 +51,7 @@ export default function Dashboard() {
       ) : (
         <>
           {/* Stat cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <StatCard label="Total Income" value={formatMoney(summary.total_income)} color="text-emerald-600" />
             <StatCard label="Total Spent" value={formatMoney(summary.total_spent)} color="text-red-500" />
             <StatCard
@@ -61,6 +66,29 @@ export default function Dashboard() {
               small
             />
           </div>
+
+          {/* Cumulative Balance card */}
+          {cumulative && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Cumulative Balance</p>
+                  <p className={`text-2xl font-bold ${cumulative.net_balance >= 0 ? 'text-indigo-600' : 'text-red-500'}`}>
+                    {formatMoney(cumulative.net_balance)}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">All-time income minus spending</p>
+                </div>
+                <div className="text-xs text-gray-500 sm:text-right space-y-1">
+                  <p>
+                    Lifetime income: <span className="text-emerald-600 font-medium">{formatMoney(cumulative.total_income)}</span>
+                  </p>
+                  <p>
+                    Lifetime spending: <span className="text-red-500 font-medium">{formatMoney(cumulative.total_spending)}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Budget Progress */}
           <section className="mb-8">

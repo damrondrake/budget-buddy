@@ -38,6 +38,8 @@ export const deleteTransaction = (id) => api.delete(`/transactions/${id}`)
 export const getBudgets = (params) => api.get('/budgets', { params })
 export const upsertBudget = (data) => api.post('/budgets', data)
 export const copyBudgets = (data) => api.post('/budgets/copy', data)
+export const addBudgetLineItem = (budgetId, data) => api.post(`/budgets/${budgetId}/items`, data)
+export const deleteBudgetLineItem = (budgetId, itemId) => api.delete(`/budgets/${budgetId}/items/${itemId}`)
 
 // Categories
 export const getCategories = () => api.get('/categories')
@@ -62,6 +64,7 @@ export const updateUser = (id, data) => api.put(`/users/${id}`, data)
 
 // Summary
 export const getSummary = (month, year) => api.get(`/summary/${month}/${year}`)
+export const getCumulative = () => api.get('/cumulative')
 
 // Trends
 export const getTrends = (months = 6) => api.get('/trends', { params: { months } })

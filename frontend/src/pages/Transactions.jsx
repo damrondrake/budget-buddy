@@ -6,7 +6,7 @@ import {
 import MonthPicker from '../components/MonthPicker'
 import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
 import { formatMoney, formatDate } from '../utils/format'
-import { downloadCsv } from '../utils/exportCsv'
+import { downloadCsvRows } from '../utils/exportCsv'
 import { useUsers } from '../context/UsersContext'
 
 function emptyForm(users) {
@@ -170,16 +170,25 @@ export default function Transactions() {
             onClick={() => {
               const sorted = [...filtered].sort((a, b) => a.date.localeCompare(b.date))
               let balance = 0
-              const rows = sorted.map((t) => {
+              const fmt = (n) => `$${n.toFixed(2)}`
+              const dataRows = sorted.map((t) => {
                 balance += t.amount
                 return [
                   t.date, t.category_name, t.note || '', t.paid_by_name,
-                  t.is_split ? 'Yes' : 'No', t.amount.toFixed(2), balance.toFixed(2),
+                  t.is_split ? 'Yes' : 'No', fmt(t.amount), fmt(balance),
                 ]
               })
+              const totalSpent = sorted.reduce((s, t) => s + t.amount, 0)
               const monthLabel = new Date(year, month - 1).toLocaleString('default', { month: 'long' })
-              downloadCsv(`transactions-${monthLabel}-${year}.csv`,
-                ['Date', 'Category', 'Note', 'Paid By', 'Split', 'Amount', 'Running Balance'], rows)
+              const rows = [
+                ['BudgetBuddy'],
+                [`${monthLabel} ${year}`],
+                [],
+                ['Date', 'Category', 'Note', 'Paid By', 'Split', 'Amount', 'Running Balance'],
+                ...dataRows,
+                ['TOTAL', '', '', '', '', fmt(totalSpent), fmt(balance)],
+              ]
+              downloadCsvRows(`transactions-${monthLabel}-${year}.csv`, rows)
             }}
             disabled={filtered.length === 0}
             className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"

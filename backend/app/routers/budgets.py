@@ -3,9 +3,16 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.auth import get_current_account
-from app.models import Budget, Category
+from app.models import Budget, BudgetLineItem, Category
 from app.models.account import Account
-from app.schemas.budget import BudgetCreate, BudgetOut, BudgetCopy, BudgetCopyResult
+from app.schemas.budget import (
+    BudgetCreate,
+    BudgetOut,
+    BudgetCopy,
+    BudgetCopyResult,
+    BudgetLineItemCreate,
+    BudgetLineItemOut,
+)
 
 router = APIRouter(prefix="/api/budgets", tags=["budgets"])
 
@@ -19,6 +26,10 @@ def _enrich(b: Budget) -> BudgetOut:
         amount_limit=b.amount_limit,
         note=b.note,
         category_name=b.category.name if b.category else None,
+        line_items=[
+            BudgetLineItemOut(id=li.id, label=li.label, amount=li.amount)
+            for li in b.line_items
+        ],
     )
 
 
@@ -103,3 +114,45 @@ def copy_budgets(
         copied=copied,
         message=f"Copied {copied} budget(s)" if copied > 0 else "All budgets already exist for this month",
     )
+
+
+@router.post("/{budget_id}/items", response_model=BudgetLineItemOut, status_code=201)
+def add_line_item(
+    budget_id: int,
+    data: BudgetLineItemCreate,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    budget = db.query(Budget).filter(
+        Budget.id == budget_id, Budget.account_id == account.id
+    ).first()
+    if not budget:
+        raise HTTPException(404, "Budget not found")
+    item = BudgetLineItem(
+        budget_id=budget.id,
+        label=data.label,
+        amount=data.amount,
+        account_id=account.id,
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return BudgetLineItemOut(id=item.id, label=item.label, amount=item.amount)
+
+
+@router.delete("/{budget_id}/items/{item_id}", status_code=204)
+def delete_line_item(
+    budget_id: int,
+    item_id: int,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    item = db.query(BudgetLineItem).filter(
+        BudgetLineItem.id == item_id,
+        BudgetLineItem.budget_id == budget_id,
+        BudgetLineItem.account_id == account.id,
+    ).first()
+    if not item:
+        raise HTTPException(404, "Line item not found")
+    db.delete(item)
+    db.commit()

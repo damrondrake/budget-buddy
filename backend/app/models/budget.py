@@ -16,3 +16,6 @@ class Budget(Base):
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
 
     category: Mapped["Category"] = relationship(back_populates="budgets")
+    line_items: Mapped[list["BudgetLineItem"]] = relationship(
+        back_populates="budget", cascade="all, delete-orphan"
+    )

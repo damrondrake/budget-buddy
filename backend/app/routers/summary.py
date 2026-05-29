@@ -1,16 +1,39 @@
 from collections import defaultdict
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import extract
+from sqlalchemy import extract, func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.auth import get_current_account
 from app.models import Transaction, Budget, Income, Category, User
 from app.models.account import Account
-from app.schemas.summary import SummaryOut, CategorySpending
+from app.schemas.summary import SummaryOut, CategorySpending, CumulativeOut
 
 router = APIRouter(prefix="/api/summary", tags=["summary"])
+cumulative_router = APIRouter(prefix="/api/cumulative", tags=["cumulative"])
+
+
+@cumulative_router.get("", response_model=CumulativeOut)
+def get_cumulative(
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    total_income = (
+        db.query(func.coalesce(func.sum(Income.amount), 0.0))
+        .filter(Income.account_id == account.id)
+        .scalar()
+    )
+    total_spending = (
+        db.query(func.coalesce(func.sum(Transaction.amount), 0.0))
+        .filter(Transaction.account_id == account.id)
+        .scalar()
+    )
+    return CumulativeOut(
+        total_income=round(float(total_income), 2),
+        total_spending=round(float(total_spending), 2),
+        net_balance=round(float(total_income) - float(total_spending), 2),
+    )
 
 
 @router.get("/{month}/{year}", response_model=SummaryOut)
