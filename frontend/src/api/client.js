@@ -44,6 +44,15 @@ export const addBudgetLineItem = (budgetId, data) => api.post(`/budgets/${budget
 export const updateBudgetLineItem = (budgetId, itemId, data) => api.put(`/budgets/${budgetId}/items/${itemId}`, data)
 export const deleteBudgetLineItem = (budgetId, itemId) => api.delete(`/budgets/${budgetId}/items/${itemId}`)
 
+// Savings
+export const getSavings = () => api.get('/savings')
+export const createSavingsGoal = (data) => api.post('/savings', data)
+export const deleteSavingsGoal = (id) => api.delete(`/savings/${id}`)
+export const addSavingsAllocation = (goalId, data) => api.post(`/savings/${goalId}/allocations`, data)
+export const deleteSavingsAllocation = (goalId, allocId) => api.delete(`/savings/${goalId}/allocations/${allocId}`)
+export const addSavingsTransaction = (goalId, data) => api.post(`/savings/${goalId}/transactions`, data)
+export const getSavingsTransactions = (goalId) => api.get(`/savings/${goalId}/transactions`)
+
 // Categories
 export const getCategories = () => api.get('/categories')
 export const createCategory = (data) => api.post('/categories', data)

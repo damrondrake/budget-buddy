@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import auth, transactions, budgets, categories, income, summary, users, recurring, trends
+from app.routers import auth, transactions, budgets, categories, income, summary, users, recurring, trends, savings
 
 load_dotenv()
 
@@ -35,6 +35,7 @@ app.include_router(summary.cumulative_router)
 app.include_router(users.router)
 app.include_router(recurring.router)
 app.include_router(trends.router)
+app.include_router(savings.router)
 
 
 @app.get("/api/health")

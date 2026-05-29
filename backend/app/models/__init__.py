@@ -6,8 +6,10 @@ from app.models.budget_line_item import BudgetLineItem
 from app.models.recurring import RecurringTransaction
 from app.models.transaction import Transaction
 from app.models.income import Income
+from app.models.savings import SavingsGoal, SavingsAllocation, SavingsTransaction
 
 __all__ = [
     "Account", "User", "Category", "Budget", "BudgetLineItem",
     "RecurringTransaction", "Transaction", "Income",
+    "SavingsGoal", "SavingsAllocation", "SavingsTransaction",
 ]
