@@ -37,8 +37,10 @@ export const deleteTransaction = (id) => api.delete(`/transactions/${id}`)
 // Budgets
 export const getBudgets = (params) => api.get('/budgets', { params })
 export const upsertBudget = (data) => api.post('/budgets', data)
+export const deleteBudget = (id) => api.delete(`/budgets/${id}`)
 export const copyBudgets = (data) => api.post('/budgets/copy', data)
 export const addBudgetLineItem = (budgetId, data) => api.post(`/budgets/${budgetId}/items`, data)
+export const updateBudgetLineItem = (budgetId, itemId, data) => api.put(`/budgets/${budgetId}/items/${itemId}`, data)
 export const deleteBudgetLineItem = (budgetId, itemId) => api.delete(`/budgets/${budgetId}/items/${itemId}`)
 
 // Categories

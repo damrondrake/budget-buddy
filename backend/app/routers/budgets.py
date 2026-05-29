@@ -116,6 +116,23 @@ def copy_budgets(
     )
 
 
+@router.delete("/{budget_id}", status_code=204)
+def delete_budget(
+    budget_id: int,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    budget = db.query(Budget).filter(
+        Budget.id == budget_id, Budget.account_id == account.id
+    ).first()
+    if not budget:
+        raise HTTPException(404, "Budget not found")
+    # Budget.line_items has cascade="all, delete-orphan", so the ORM deletes the
+    # children when we delete the parent.
+    db.delete(budget)
+    db.commit()
+
+
 @router.post("/{budget_id}/items", response_model=BudgetLineItemOut, status_code=201)
 def add_line_item(
     budget_id: int,
@@ -135,6 +152,28 @@ def add_line_item(
         account_id=account.id,
     )
     db.add(item)
+    db.commit()
+    db.refresh(item)
+    return BudgetLineItemOut(id=item.id, label=item.label, amount=item.amount)
+
+
+@router.put("/{budget_id}/items/{item_id}", response_model=BudgetLineItemOut)
+def update_line_item(
+    budget_id: int,
+    item_id: int,
+    data: BudgetLineItemCreate,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    item = db.query(BudgetLineItem).filter(
+        BudgetLineItem.id == item_id,
+        BudgetLineItem.budget_id == budget_id,
+        BudgetLineItem.account_id == account.id,
+    ).first()
+    if not item:
+        raise HTTPException(404, "Line item not found")
+    item.label = data.label
+    item.amount = data.amount
     db.commit()
     db.refresh(item)
     return BudgetLineItemOut(id=item.id, label=item.label, amount=item.amount)

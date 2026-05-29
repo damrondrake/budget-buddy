@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
-  getBudgets, upsertBudget, copyBudgets, getCategories, getSummary,
-  addBudgetLineItem, deleteBudgetLineItem,
+  getBudgets, upsertBudget, deleteBudget, copyBudgets, getCategories, getSummary,
+  addBudgetLineItem, updateBudgetLineItem, deleteBudgetLineItem,
 } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import { BudgetsEmptyIcon } from '../components/EmptyState'
@@ -18,6 +18,9 @@ export default function Budgets() {
   const [formLabel, setFormLabel] = useState('')
   const [formAmount, setFormAmount] = useState('')
   const [copyMsg, setCopyMsg] = useState(null)
+  const [editingId, setEditingId] = useState(null)
+  const [itemDrafts, setItemDrafts] = useState({})
+  const [newItemDraft, setNewItemDraft] = useState({ label: '', amount: '' })
 
   useEffect(() => {
     getCategories().then((res) => setCategories(res.data))
@@ -69,6 +72,69 @@ export default function Budgets() {
 
   async function handleDeleteItem(budgetId, itemId) {
     await deleteBudgetLineItem(budgetId, itemId)
+    setItemDrafts((prev) => {
+      const next = { ...prev }
+      delete next[itemId]
+      return next
+    })
+    fetchData()
+  }
+
+  function toggleEdit(budget) {
+    if (editingId === budget.id) {
+      setEditingId(null)
+      setItemDrafts({})
+      setNewItemDraft({ label: '', amount: '' })
+      return
+    }
+    const drafts = {}
+    for (const item of budget.line_items || []) {
+      drafts[item.id] = { label: item.label, amount: String(item.amount) }
+    }
+    setEditingId(budget.id)
+    setItemDrafts(drafts)
+    setNewItemDraft({ label: '', amount: '' })
+  }
+
+  function updateItemDraft(itemId, patch) {
+    setItemDrafts((prev) => ({
+      ...prev,
+      [itemId]: { ...(prev[itemId] || { label: '', amount: '' }), ...patch },
+    }))
+  }
+
+  async function saveItem(budgetId, itemId) {
+    const draft = itemDrafts[itemId]
+    if (!draft) return
+    const label = draft.label.trim()
+    const amount = parseFloat(draft.amount)
+    if (!label || Number.isNaN(amount)) return
+    await updateBudgetLineItem(budgetId, itemId, { label, amount })
+    fetchData()
+  }
+
+  async function addItemFromEdit(budgetId) {
+    const label = newItemDraft.label.trim()
+    const amount = parseFloat(newItemDraft.amount)
+    if (!label || Number.isNaN(amount)) return
+    const res = await addBudgetLineItem(budgetId, { label, amount })
+    const newItem = res.data
+    setItemDrafts((prev) => ({
+      ...prev,
+      [newItem.id]: { label: newItem.label, amount: String(newItem.amount) },
+    }))
+    setNewItemDraft({ label: '', amount: '' })
+    fetchData()
+  }
+
+  async function handleDeleteBudget(budget) {
+    if (!window.confirm('Are you sure you want to delete this budget and all its line items?')) return
+    await deleteBudget(budget.id)
+    if (editingId === budget.id) {
+      setEditingId(null)
+      setItemDrafts({})
+      setNewItemDraft({ label: '', amount: '' })
+    }
     fetchData()
   }
 
@@ -185,6 +251,8 @@ export default function Budgets() {
             const barColor =
               pct >= 100 ? 'bg-red-500' : pct >= 75 ? 'bg-amber-500' : 'bg-emerald-500'
 
+            const isEditing = editingId === b.id
+
             return (
               <div key={b.id} className="bg-white rounded-xl border border-gray-200 p-5">
                 <div className="flex items-start gap-2 mb-3">
@@ -198,6 +266,32 @@ export default function Budgets() {
                       <p className="text-xs text-gray-400 truncate">{b.note}</p>
                     )}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleEdit(b)}
+                    className={`p-1.5 rounded transition-colors ${
+                      isEditing
+                        ? 'bg-indigo-100 text-indigo-700'
+                        : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
+                    }`}
+                    title={isEditing ? 'Close edit view' : 'Edit budget'}
+                    aria-label={isEditing ? 'Close edit view' : 'Edit budget'}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteBudget(b)}
+                    className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    title="Delete budget"
+                    aria-label="Delete budget"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
                 </div>
 
                 <div className="space-y-1 mb-3">
@@ -238,13 +332,51 @@ export default function Budgets() {
                   </p>
                 )}
 
-                {items.length > 0 && (
+                {(items.length > 0 || isEditing) && (
                   <div className="mt-4 pt-3 border-t border-gray-100">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                       Line Items
                     </p>
-                    <div className="divide-y divide-gray-100">
-                      {items.map((li) => (
+                    <div className={isEditing ? 'space-y-2' : 'divide-y divide-gray-100'}>
+                      {items.map((li) => isEditing ? (
+                        <div key={li.id} className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={itemDrafts[li.id]?.label ?? li.label}
+                            onChange={(e) => updateItemDraft(li.id, { label: e.target.value })}
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                          />
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={itemDrafts[li.id]?.amount ?? String(li.amount)}
+                            onChange={(e) => updateItemDraft(li.id, { amount: e.target.value })}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => saveItem(b.id, li.id)}
+                            className="p-1 rounded text-emerald-600 hover:bg-emerald-50 transition-colors"
+                            title="Save line item"
+                            aria-label={`Save ${li.label}`}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteItem(b.id, li.id)}
+                            className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            title="Delete line item"
+                            aria-label={`Delete ${li.label}`}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : (
                         <div key={li.id} className="flex items-center gap-2 py-1.5">
                           <span className="flex-1 text-sm text-gray-700 truncate">{li.label}</span>
                           <span className="text-sm font-medium text-gray-900">
@@ -264,6 +396,35 @@ export default function Budgets() {
                         </div>
                       ))}
                     </div>
+                    {isEditing && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 mb-1.5">Add a new line item</p>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={newItemDraft.label}
+                            onChange={(e) => setNewItemDraft({ ...newItemDraft, label: e.target.value })}
+                            placeholder="Label"
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                          />
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={newItemDraft.amount}
+                            onChange={(e) => setNewItemDraft({ ...newItemDraft, amount: e.target.value })}
+                            placeholder="Amount"
+                            className="w-20 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => addItemFromEdit(b.id)}
+                            className="px-2 py-1 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors shrink-0"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
