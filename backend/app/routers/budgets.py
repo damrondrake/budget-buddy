@@ -12,6 +12,7 @@ from app.schemas.budget import (
     BudgetCopyResult,
     BudgetLineItemCreate,
     BudgetLineItemOut,
+    BudgetPaidUpdate,
 )
 
 router = APIRouter(prefix="/api/budgets", tags=["budgets"])
@@ -25,6 +26,7 @@ def _enrich(b: Budget) -> BudgetOut:
         year=b.year,
         amount_limit=b.amount_limit,
         note=b.note,
+        paid=b.paid,
         category_name=b.category.name if b.category else None,
         line_items=[
             BudgetLineItemOut(id=li.id, label=li.label, amount=li.amount)
@@ -99,14 +101,24 @@ def copy_budgets(
     copied = 0
     for b in source:
         if b.category_id not in existing_cats:
-            db.add(Budget(
+            new_budget = Budget(
                 category_id=b.category_id,
                 month=data.to_month,
                 year=data.to_year,
                 amount_limit=b.amount_limit,
                 note=b.note,
                 account_id=account.id,
-            ))
+            )
+            db.add(new_budget)
+            # Flush so new_budget.id is assigned before we attach line items.
+            db.flush()
+            for li in b.line_items:
+                db.add(BudgetLineItem(
+                    budget_id=new_budget.id,
+                    label=li.label,
+                    amount=li.amount,
+                    account_id=account.id,
+                ))
             copied += 1
 
     db.commit()
@@ -131,6 +143,24 @@ def delete_budget(
     # children when we delete the parent.
     db.delete(budget)
     db.commit()
+
+
+@router.put("/{budget_id}/paid", response_model=BudgetOut)
+def set_budget_paid(
+    budget_id: int,
+    data: BudgetPaidUpdate,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    budget = db.query(Budget).filter(
+        Budget.id == budget_id, Budget.account_id == account.id
+    ).first()
+    if not budget:
+        raise HTTPException(404, "Budget not found")
+    budget.paid = data.paid
+    db.commit()
+    db.refresh(budget)
+    return _enrich(budget)
 
 
 @router.post("/{budget_id}/items", response_model=BudgetLineItemOut, status_code=201)

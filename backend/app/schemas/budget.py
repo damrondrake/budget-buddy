@@ -29,10 +29,15 @@ class BudgetOut(BaseModel):
     year: int
     amount_limit: float
     note: str | None = None
+    paid: bool = False
     category_name: str | None = None
     line_items: list[BudgetLineItemOut] = []
 
     model_config = {"from_attributes": True}
+
+
+class BudgetPaidUpdate(BaseModel):
+    paid: bool
 
 
 class BudgetCopy(BaseModel):

@@ -2,13 +2,23 @@ import { useState, useEffect } from 'react'
 import {
   getBudgets, upsertBudget, deleteBudget, copyBudgets, getCategories, getSummary,
   addBudgetLineItem, updateBudgetLineItem, deleteBudgetLineItem,
+  setBudgetPaid, createTransaction,
 } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import { BudgetsEmptyIcon } from '../components/EmptyState'
 import { formatMoney } from '../utils/format'
+import { useUsers } from '../context/UsersContext'
+
+function todayStr() {
+  const d = new Date()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
 
 export default function Budgets() {
   const now = new Date()
+  const { users } = useUsers()
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
   const [budgets, setBudgets] = useState([])
@@ -21,6 +31,9 @@ export default function Budgets() {
   const [editingId, setEditingId] = useState(null)
   const [itemDrafts, setItemDrafts] = useState({})
   const [newItemDraft, setNewItemDraft] = useState({ label: '', amount: '' })
+  // The budget awaiting a "who paid?" confirmation, plus the selected payer.
+  const [payingBudget, setPayingBudget] = useState(null)
+  const [payByUserId, setPayByUserId] = useState('')
 
   useEffect(() => {
     getCategories().then((res) => setCategories(res.data))
@@ -157,6 +170,37 @@ export default function Budgets() {
     }
   }
 
+  function budgetTotal(b) {
+    const items = b.line_items || []
+    return items.length > 0 ? items.reduce((s, li) => s + li.amount, 0) : b.amount_limit
+  }
+
+  function openPayPrompt(budget) {
+    setPayByUserId(String(users[0]?.id ?? ''))
+    setPayingBudget(budget)
+  }
+
+  async function confirmPaid() {
+    const b = payingBudget
+    const userId = parseInt(payByUserId)
+    if (!b || !userId) return
+    await createTransaction({
+      amount: budgetTotal(b),
+      category_id: b.category_id,
+      paid_by: userId,
+      date: todayStr(),
+      note: `Paid - ${b.category_name}`,
+    })
+    await setBudgetPaid(b.id, true)
+    setPayingBudget(null)
+    fetchData()
+  }
+
+  async function unmarkPaid(budget) {
+    await setBudgetPaid(budget.id, false)
+    fetchData()
+  }
+
   const budgetedCatIds = new Set(budgets.map((b) => b.category_id))
   const catMap = Object.fromEntries(categories.map((c) => [c.id, c]))
   const unbudgeted = categories.filter((c) => !budgetedCatIds.has(c.id))
@@ -248,8 +292,12 @@ export default function Budgets() {
             const effectiveLimit = items.length > 0 ? itemsTotal : b.amount_limit
             const remaining = effectiveLimit - spent
             const pct = effectiveLimit > 0 ? (spent / effectiveLimit) * 100 : 0
-            const barColor =
-              pct >= 100 ? 'bg-red-500' : pct >= 75 ? 'bg-amber-500' : 'bg-emerald-500'
+            const isPaid = b.paid
+            // A paid budget always reads as a full green bar, regardless of spend.
+            const barColor = isPaid
+              ? 'bg-emerald-500'
+              : pct >= 100 ? 'bg-red-500' : pct >= 75 ? 'bg-amber-500' : 'bg-emerald-500'
+            const barWidth = isPaid ? 100 : Math.min(pct, 100)
 
             const isEditing = editingId === b.id
 
@@ -261,7 +309,14 @@ export default function Budgets() {
                     style={{ backgroundColor: cat?.color || '#6B7280' }}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900">{b.category_name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{b.category_name}</p>
+                      {isPaid && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold shrink-0">
+                          Paid ✓
+                        </span>
+                      )}
+                    </div>
                     {b.note && (
                       <p className="text-xs text-gray-400 truncate">{b.note}</p>
                     )}
@@ -321,16 +376,43 @@ export default function Budgets() {
                 <div className="w-full bg-gray-100 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all ${barColor}`}
-                    style={{ width: `${Math.min(pct, 100)}%` }}
+                    style={{ width: `${barWidth}%` }}
                   />
                 </div>
                 <p className="text-xs text-gray-400 mt-1.5">{Math.round(pct)}% used</p>
 
-                {pct >= 100 && (
+                {isPaid ? (
+                  <p className="text-xs text-emerald-600 font-medium mt-1 flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Paid
+                  </p>
+                ) : pct >= 100 && (
                   <p className="text-xs text-red-500 font-medium mt-1">
                     Over budget by {formatMoney(spent - effectiveLimit)}
                   </p>
                 )}
+
+                <div className="mt-3">
+                  {isPaid ? (
+                    <button
+                      type="button"
+                      onClick={() => unmarkPaid(b)}
+                      className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      Unmark as paid
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => openPayPrompt(b)}
+                      className="w-full px-3 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+                    >
+                      Mark as Paid
+                    </button>
+                  )}
+                </div>
 
                 {(items.length > 0 || isEditing) && (
                   <div className="mt-4 pt-3 border-t border-gray-100">
@@ -454,6 +536,52 @@ export default function Budgets() {
             })}
           </div>
         </section>
+      )}
+
+      {/* Who-paid confirmation modal */}
+      {payingBudget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setPayingBudget(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">
+              Mark {payingBudget.category_name} as paid
+            </h3>
+            <p className="text-xs text-gray-500 mb-4">
+              This records a {formatMoney(budgetTotal(payingBudget))} transaction dated today. Who paid?
+            </p>
+            <select
+              value={payByUserId}
+              onChange={(e) => setPayByUserId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none mb-4"
+            >
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPayingBudget(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmPaid}
+                disabled={!payByUserId}
+                className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Confirm Paid
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
