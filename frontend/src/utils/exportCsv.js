@@ -7,7 +7,9 @@ function escapeCsv(val) {
 }
 
 function triggerDownload(filename, csv) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  // BOM so Excel parses as UTF-8 (the em-dash in titles would otherwise render
+  // as mojibake on Windows). CRLF line endings per RFC 4180.
+  const blob = new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -21,10 +23,10 @@ export function downloadCsv(filename, headers, rows) {
     headers.map(escapeCsv).join(','),
     ...rows.map((row) => row.map(escapeCsv).join(',')),
   ]
-  triggerDownload(filename, lines.join('\n'))
+  triggerDownload(filename, lines.join('\r\n'))
 }
 
 export function downloadCsvRows(filename, rows) {
-  const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\n')
+  const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n')
   triggerDownload(filename, csv)
 }

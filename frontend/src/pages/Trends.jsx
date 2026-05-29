@@ -5,7 +5,7 @@ import {
 } from 'recharts'
 import { getTrends } from '../api/client'
 import { formatMoney } from '../utils/format'
-import { downloadCsv } from '../utils/exportCsv'
+import { downloadCsvRows } from '../utils/exportCsv'
 
 export default function Trends() {
   const [data, setData] = useState(null)
@@ -58,19 +58,34 @@ export default function Trends() {
         <h1 className="text-2xl font-bold text-gray-900">Spending Trends</h1>
         <button
           onClick={() => {
+            const fmt = (n) => `$${n.toFixed(2)}`
             const catNames = [...allCats.values()].map((c) => c.name)
-            const headers = ['Month', 'Total Income', 'Total Spent', 'Amount Saved', ...catNames]
-            const rows = months.map((m) => {
+            const dataRows = months.map((m) => {
+              const saved = m.total_income - m.total_spent
+              const savingsRate = m.total_income > 0
+                ? `${Math.round((saved / m.total_income) * 100)}%`
+                : '0%'
               const catAmounts = catNames.map((name) => {
                 const found = m.categories.find((c) => c.category_name === name)
-                return (found ? found.amount : 0).toFixed(2)
+                return fmt(found ? found.amount : 0)
               })
               return [
-                m.label, m.total_income.toFixed(2), m.total_spent.toFixed(2),
-                (m.total_income - m.total_spent).toFixed(2), ...catAmounts,
+                m.label,
+                fmt(m.total_income),
+                fmt(m.total_spent),
+                fmt(saved),
+                savingsRate,
+                ...catAmounts,
               ]
             })
-            downloadCsv('spending-trends.csv', headers, rows)
+            const rows = [
+              ['BudgetBuddy'],
+              ['Spending Trends — Last 6 Months'],
+              [],
+              ['Month', 'Total Income', 'Total Spent', 'Amount Saved', 'Savings Rate', ...catNames],
+              ...dataRows,
+            ]
+            downloadCsvRows('spending-trends.csv', rows)
           }}
           disabled={!data}
           className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
