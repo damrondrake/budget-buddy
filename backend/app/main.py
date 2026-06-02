@@ -76,3 +76,21 @@ app.include_router(savings.router)
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy", "app": "BudgetBuddy"}
+
+
+@app.get("/api/debug/env")
+def debug_env():
+    """Diagnostics: report which expected env vars the process sees.
+
+    Returns booleans only (presence + non-empty) — never the values — so it's
+    safe to hit directly. Lets us confirm exactly what Railway is injecting.
+    """
+    names = [
+        "RESEND_API_KEY",
+        "RESEND_FROM_EMAIL",
+        "FRONTEND_URL",
+        "DATABASE_URL",
+        "SECRET_KEY",
+        "CORS_ORIGINS",
+    ]
+    return {name: bool(os.getenv(name)) for name in names}
