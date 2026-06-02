@@ -120,6 +120,31 @@ The app will be available at `http://localhost:5173`.
 
 ---
 
+## 🔑 Environment Variables
+
+### Backend (Railway)
+
+Set these in the Railway backend service under **Variables**:
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `DATABASE_URL` | ✅ | PostgreSQL connection string (Railway provides this automatically when you add a Postgres plugin). |
+| `SECRET_KEY` | ✅ | Secret used to sign JWT access tokens. Use a long random string. |
+| `CORS_ORIGINS` | ✅ | Comma-separated list of allowed frontend origins (e.g. your Vercel URL). |
+| `RESEND_API_KEY` | ⬜ | [Resend](https://resend.com) API key for sending password-reset and partner-invite emails. **Without it, those emails are skipped** (the flows still work locally and return a debug token, but no email is sent in production). |
+| `RESEND_FROM_EMAIL` | ⬜ | Sender address for outgoing emails. Defaults to Resend's shared sandbox (`BudgetBuddy <onboarding@resend.dev>`). Set to a verified-domain address (e.g. `BudgetBuddy <noreply@yourdomain.com>`) for production delivery. |
+| `FRONTEND_URL` | ⬜ | Base URL used to build links in reset/invite emails. Defaults to the production site (`https://budget-buddy-lovat-nine.vercel.app`). Set this so email links point at your deployed frontend. |
+
+> **Note:** `RESEND_API_KEY` and `FRONTEND_URL` are needed for password reset and partner invite emails to work on the live site. If `RESEND_API_KEY` is unset, the API still responds successfully but no email is sent.
+
+### Frontend (Vercel)
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `VITE_API_URL` | ✅ | Base URL of the backend API (e.g. `https://your-backend.up.railway.app`). |
+
+---
+
 ## 🗺️ Roadmap
 
 Planned improvements for BudgetBuddy:
