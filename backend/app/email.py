@@ -15,27 +15,43 @@ load_dotenv(override=False)
 
 logger = logging.getLogger("budgetbuddy.email")
 
-RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 # Resend's shared sandbox sender works without verifying a domain.
-FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "BudgetBuddy <onboarding@resend.dev>")
-FRONTEND_URL = os.getenv(
-    "FRONTEND_URL", "https://budget-buddy-lovat-nine.vercel.app"
-).rstrip("/")
+DEFAULT_FROM_EMAIL = "BudgetBuddy <onboarding@resend.dev>"
+DEFAULT_FRONTEND_URL = "https://budget-buddy-lovat-nine.vercel.app"
+
+
+# Read env vars lazily (at call time) rather than caching them at import time,
+# so values the platform injects are always picked up by the running process.
+def get_resend_api_key() -> str | None:
+    return os.getenv("RESEND_API_KEY")
+
+
+def get_from_email() -> str:
+    return os.getenv("RESEND_FROM_EMAIL", DEFAULT_FROM_EMAIL)
+
+
+def get_frontend_url() -> str:
+    return os.getenv("FRONTEND_URL", DEFAULT_FRONTEND_URL).rstrip("/")
+
+
+def resend_configured() -> bool:
+    return bool(get_resend_api_key())
 
 
 def send_email(to: str, subject: str, html: str) -> bool:
     """Send an email. Returns True if handed off to Resend, False otherwise."""
-    if not RESEND_API_KEY:
+    api_key = get_resend_api_key()
+    if not api_key:
         logger.warning(
-            "RESEND_API_KEY not set — skipping email to %s (subject: %s)", to, subject
+            "RESEND_API_KEY not set - skipping email to %s (subject: %s)", to, subject
         )
         return False
     try:
         import resend
 
-        resend.api_key = RESEND_API_KEY
+        resend.api_key = api_key
         resend.Emails.send(
-            {"from": FROM_EMAIL, "to": [to], "subject": subject, "html": html}
+            {"from": get_from_email(), "to": [to], "subject": subject, "html": html}
         )
         return True
     except Exception as exc:  # pragma: no cover - network/SDK errors
@@ -52,7 +68,7 @@ def _button(href: str, label: str) -> str:
 
 
 def send_password_reset_email(to: str, token: str) -> bool:
-    link = f"{FRONTEND_URL}/reset-password?token={token}"
+    link = f"{get_frontend_url()}/reset-password?token={token}"
     html = f"""
     <div style="font-family:sans-serif;max-width:480px;margin:auto;color:#111">
       <h2 style="color:#111">Reset your BudgetBuddy password</h2>
@@ -68,7 +84,7 @@ def send_password_reset_email(to: str, token: str) -> bool:
 
 
 def send_invite_email(to: str, token: str, inviter_name: str) -> bool:
-    link = f"{FRONTEND_URL}/accept-invite?token={token}"
+    link = f"{get_frontend_url()}/accept-invite?token={token}"
     html = f"""
     <div style="font-family:sans-serif;max-width:480px;margin:auto;color:#111">
       <h2 style="color:#111">{inviter_name} invited you to BudgetBuddy</h2>

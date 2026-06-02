@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.email import RESEND_API_KEY, FROM_EMAIL, FRONTEND_URL
+from app.email import get_resend_api_key, get_frontend_url
 from app.routers import auth, transactions, budgets, categories, income, summary, users, recurring, trends, savings
 
 # override=False so platform-injected env vars (Railway) always win over any .env file.
@@ -18,22 +18,28 @@ _log = logging.getLogger("uvicorn.error")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Dump the NAMES (never values) of every env var starting with RESEND, so we
+    # can see exactly what Railway named the variable (typo/whitespace/casing).
+    resend_keys = sorted(k for k in os.environ if k.upper().startswith("RESEND"))
+    _log.info("Env keys starting with 'RESEND': %s", resend_keys or "(none)")
+
+    resend_api_key = get_resend_api_key()
     # Confirm which email-related env vars Railway is injecting, WITHOUT
     # ever printing the secret value of RESEND_API_KEY.
     _log.info(
         "Email config at startup - RESEND_API_KEY set: %s | "
         "RESEND_FROM_EMAIL set: %s | FRONTEND_URL: %s",
-        bool(RESEND_API_KEY),
+        bool(resend_api_key),
         bool(os.getenv("RESEND_FROM_EMAIL")),
-        FRONTEND_URL,
+        get_frontend_url(),
     )
-    if RESEND_API_KEY:
+    if resend_api_key:
         # Confirm Railway is injecting the right value: prefix only, never the
         # full secret. Logging length too surfaces stray whitespace/newlines.
         _log.info(
             "RESEND_API_KEY detected - prefix: %s... (length %d)",
-            RESEND_API_KEY[:8],
-            len(RESEND_API_KEY),
+            resend_api_key[:8],
+            len(resend_api_key),
         )
     else:
         _log.warning(

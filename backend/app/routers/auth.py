@@ -12,7 +12,7 @@ from app.auth import (
     get_current_account,
     get_token_account,
 )
-from app.email import send_password_reset_email, send_invite_email, RESEND_API_KEY
+from app.email import send_password_reset_email, send_invite_email, resend_configured
 from app.models.account import Account
 from app.models.account_member import AccountMember
 from app.models.user import User
@@ -135,7 +135,7 @@ def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
     send_password_reset_email(account.email, token)
     return MessageResponse(
         message=generic,
-        debug_token=None if RESEND_API_KEY else token,
+        debug_token=None if resend_configured() else token,
     )
 
 
@@ -190,7 +190,7 @@ def invite_partner(
     send_invite_email(data.email, token, token_account.display_name)
     return MessageResponse(
         message=f"Invite sent to {data.email}.",
-        debug_token=None if RESEND_API_KEY else token,
+        debug_token=None if resend_configured() else token,
     )
 
 
