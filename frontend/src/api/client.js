@@ -28,6 +28,15 @@ api.interceptors.response.use(
   },
 )
 
+// Auth — password reset & partner invites
+export const forgotPassword = (email) => api.post('/auth/forgot-password', { email })
+export const resetPassword = (token, password) => api.post('/auth/reset-password', { token, password })
+export const invitePartner = (email) => api.post('/auth/invite', { email })
+export const acceptInviteLogin = (token, email, password) =>
+  api.post('/auth/accept-invite/login', { token, email, password })
+export const acceptInviteRegister = (token, email, password, displayName) =>
+  api.post('/auth/accept-invite/register', { token, email, password, display_name: displayName })
+
 // Transactions
 export const getTransactions = (params) => api.get('/transactions', { params })
 export const createTransaction = (data) => api.post('/transactions', data)

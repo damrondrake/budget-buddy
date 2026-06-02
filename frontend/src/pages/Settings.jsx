@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react'
-import { updateUser, getCategories, createCategory, deleteCategory } from '../api/client'
+import { updateUser, getCategories, createCategory, deleteCategory, invitePartner } from '../api/client'
 import { useUsers } from '../context/UsersContext'
+import { useAuth } from '../context/AuthContext'
 
 export default function Settings() {
   const { users, refreshUsers } = useUsers()
+  const { account } = useAuth()
   const [userNames, setUserNames] = useState({})
   const [userMsg, setUserMsg] = useState(null)
   const [categories, setCategories] = useState([])
   const [catName, setCatName] = useState('')
   const [catColor, setCatColor] = useState('#6366F1')
   const [catMsg, setCatMsg] = useState(null)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteMsg, setInviteMsg] = useState(null)
+  const [inviting, setInviting] = useState(false)
 
   useEffect(() => {
     fetchCategories()
@@ -38,6 +43,27 @@ export default function Settings() {
       refreshUsers()
     } catch {
       setUserMsg({ type: 'error', text: 'Failed to update names.' })
+    }
+  }
+
+  async function handleInvite(e) {
+    e.preventDefault()
+    setInviteMsg(null)
+    setInviting(true)
+    try {
+      const res = await invitePartner(inviteEmail)
+      const debug = res.data?.debug_token
+      setInviteMsg({
+        type: 'success',
+        text: res.data?.message || `Invite sent to ${inviteEmail}.`,
+        link: debug ? `/accept-invite?token=${debug}` : null,
+      })
+      setInviteEmail('')
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to send invite.'
+      setInviteMsg({ type: 'error', text: detail })
+    } finally {
+      setInviting(false)
     }
   }
 
@@ -86,10 +112,10 @@ export default function Settings() {
           </div>
         )}
         <form onSubmit={handleSaveUsers} className="space-y-3">
-          {users.map((u) => (
+          {users.map((u, idx) => (
             <div key={u.id} className="flex flex-col sm:flex-row sm:items-center gap-2">
               <label className="text-sm font-medium text-gray-500 w-20 shrink-0">
-                User {u.id}
+                Person {idx + 1}
               </label>
               <input
                 type="text"
@@ -105,6 +131,54 @@ export default function Settings() {
             className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
           >
             Save Names
+          </button>
+        </form>
+      </section>
+
+      {/* Invite Partner */}
+      <section className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-lg font-semibold text-gray-900">Invite Partner</h2>
+          {account?.member_count > 1 && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Shared · {account.member_count} people
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          Invite someone to share this account. They'll see the same transactions, budgets, income, and savings.
+        </p>
+        {inviteMsg && (
+          <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${
+            inviteMsg.type === 'success'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            {inviteMsg.text}
+            {inviteMsg.link && (
+              <div className="mt-1 text-xs text-amber-700">
+                Dev mode (no email configured). Invite link:{' '}
+                <a href={inviteMsg.link} className="font-medium underline break-all">{inviteMsg.link}</a>
+              </div>
+            )}
+          </div>
+        )}
+        <form onSubmit={handleInvite} className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="email"
+            required
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            placeholder="partner@example.com"
+            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
+          />
+          <button
+            type="submit"
+            disabled={inviting}
+            className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0 disabled:bg-emerald-400"
+          >
+            {inviting ? 'Sending...' : 'Send Invite'}
           </button>
         </form>
       </section>

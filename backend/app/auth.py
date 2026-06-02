@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.account import Account
+from app.models.account_member import AccountMember
 
 load_dotenv()
 
@@ -33,10 +34,14 @@ def create_access_token(account_id: int) -> str:
     return jwt.encode({"sub": str(account_id), "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_account(
+def get_token_account(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> Account:
+    """The actual logged-in person's account, straight from the token.
+
+    Use this when you need the caller's own identity (e.g. /me, display name).
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or expired token",
@@ -52,3 +57,29 @@ def get_current_account(
     if not account:
         raise credentials_exception
     return account
+
+
+def get_current_account(
+    token_account: Account = Depends(get_token_account),
+    db: Session = Depends(get_db),
+) -> Account:
+    """The account used to scope all data queries.
+
+    If the caller has accepted an invite to share another account (their email
+    appears in account_members as a member), data resolves to that shared
+    account. Otherwise it's just their own account. Every data router depends on
+    this, so collaboration works without changing those routers.
+    """
+    membership = (
+        db.query(AccountMember)
+        .filter(
+            AccountMember.user_email == token_account.email,
+            AccountMember.role == "member",
+        )
+        .first()
+    )
+    if membership:
+        shared = db.get(Account, membership.account_id)
+        if shared:
+            return shared
+    return token_account

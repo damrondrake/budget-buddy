@@ -110,12 +110,25 @@ export default function Layout() {
           </NavLink>
           {account && (
             <div className="flex items-center gap-3 px-3 pt-3 pb-1">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-semibold shrink-0">
-                {account.display_name?.[0]?.toUpperCase() || '?'}
+              <div className="flex shrink-0 -space-x-2">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-semibold ring-2 ring-white">
+                  {account.display_name?.[0]?.toUpperCase() || '?'}
+                </div>
+                {account.member_count > 1 && (
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold ring-2 ring-white" title={`${account.member_count} people share this account`}>
+                    +{account.member_count - 1}
+                  </div>
+                )}
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">{account.display_name}</p>
-                <p className="text-xs text-gray-400 truncate" title={account.email}>{account.email}</p>
+                {account.member_count > 1 ? (
+                  <p className="text-xs text-emerald-600 font-medium truncate">
+                    Shared account · {account.member_count} people
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-400 truncate" title={account.email}>{account.email}</p>
+                )}
               </div>
             </div>
           )}

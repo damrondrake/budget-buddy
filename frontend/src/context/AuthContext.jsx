@@ -95,6 +95,15 @@ export function AuthProvider({ children }) {
     persistSession(nextToken, me.data)
   }
 
+  // Establish a session from an access token obtained outside login/register
+  // (e.g. after accepting a partner invite).
+  async function setSessionToken(nextToken) {
+    localStorage.setItem(TOKEN_KEY, nextToken)
+    setToken(nextToken)
+    const me = await api.get('/auth/me')
+    persistSession(nextToken, me.data)
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -104,6 +113,7 @@ export function AuthProvider({ children }) {
         isAuthenticated: Boolean(token && account),
         login,
         register,
+        setSessionToken,
         logout,
       }}
     >

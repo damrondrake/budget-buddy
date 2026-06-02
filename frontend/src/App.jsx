@@ -11,6 +11,9 @@ import Settings from './pages/Settings'
 import Trends from './pages/Trends'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+import AcceptInvite from './pages/AcceptInvite'
 
 function RequireAuth({ children }) {
   const { isAuthenticated, loading } = useAuth()
@@ -56,6 +59,10 @@ export default function App() {
             </RedirectIfAuthed>
           }
         />
+        {/* Public token-based flows — reachable whether or not signed in. */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route
           element={
             <RequireAuth>
