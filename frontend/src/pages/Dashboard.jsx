@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { getSummary, getTransactions, getCumulative } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
-import EmptyState, { TransactionsEmptyIcon, BudgetsEmptyIcon } from '../components/EmptyState'
+import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
 import { formatMoney, formatDateShort } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
 
@@ -57,7 +57,7 @@ export default function Dashboard() {
             <StatCard
               label="Remaining"
               value={formatMoney(summary.remaining)}
-              color={summary.remaining >= 0 ? 'text-indigo-600' : 'text-red-500'}
+              color={summary.remaining >= 0 ? 'text-emerald-600' : 'text-red-500'}
             />
             <StatCard
               label="Split Balance"
@@ -69,11 +69,11 @@ export default function Dashboard() {
 
           {/* Cumulative Balance card */}
           {cumulative && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-8">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Cumulative Balance</p>
-                  <p className={`text-2xl font-bold ${cumulative.net_balance >= 0 ? 'text-indigo-600' : 'text-red-500'}`}>
+                  <p className={`text-2xl font-bold ${cumulative.net_balance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                     {formatMoney(cumulative.net_balance)}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">All-time income minus spending</p>
@@ -102,7 +102,7 @@ export default function Dashboard() {
             ) : (
               <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
                 <p className="text-gray-500 text-sm mb-2">No budgets set for this month.</p>
-                <Link to="/budgets" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                <Link to="/budgets" className="text-sm text-emerald-600 hover:text-emerald-800 font-medium">
                   Set up budgets
                 </Link>
               </div>
@@ -112,7 +112,7 @@ export default function Dashboard() {
           {/* Two-column layout: chart + recent transactions */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Spending chart */}
-            <section className="bg-white rounded-xl border border-gray-200 p-5">
+            <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Spending by Category</h2>
               {summary.by_category.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
@@ -144,10 +144,10 @@ export default function Dashboard() {
             </section>
 
             {/* Recent transactions */}
-            <section className="bg-white rounded-xl border border-gray-200">
+            <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between p-5 pb-3">
                 <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
-                <Link to="/transactions" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                <Link to="/transactions" className="text-sm text-emerald-600 hover:text-emerald-800 font-medium">
                   View All
                 </Link>
               </div>
@@ -161,7 +161,7 @@ export default function Dashboard() {
               ) : (
                 <div className="divide-y divide-gray-100">
                   {recentTxns.map((t) => (
-                    <div key={t.id} className="flex items-center gap-3 px-5 py-3">
+                    <div key={t.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors">
                       <span
                         className="w-2.5 h-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: getCategoryColor(t, summary.by_category) }}
@@ -189,9 +189,9 @@ export default function Dashboard() {
 
 function StatCard({ label, value, color, small }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <p className="text-sm text-gray-500 mb-1">{label}</p>
-      <p className={`${small ? 'text-base' : 'text-2xl'} font-bold ${color}`}>{value}</p>
+    <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+      <p className="text-xs uppercase tracking-wide text-gray-400 font-medium mb-1.5">{label}</p>
+      <p className={`${small ? 'text-base' : 'text-3xl'} font-bold tracking-tight ${color}`}>{value}</p>
     </div>
   )
 }
@@ -202,26 +202,29 @@ function BudgetCard({ cat }) {
     pct >= 100 ? 'bg-red-500' : pct >= 75 ? 'bg-amber-500' : 'bg-emerald-500'
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center gap-2 mb-3">
         <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
         <span className="text-sm font-medium text-gray-900">{cat.category_name}</span>
       </div>
-      <div className="flex items-baseline justify-between mb-2">
-        <span className="text-lg font-bold text-gray-900">{formatMoney(cat.spent)}</span>
+      <div className="flex items-baseline justify-between mb-2.5">
+        <span className="text-xl font-bold tracking-tight text-gray-900">{formatMoney(cat.spent)}</span>
         <span className="text-sm text-gray-400">/ {formatMoney(cat.budget_limit)}</span>
       </div>
-      <div className="w-full bg-gray-100 rounded-full h-2">
+      <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
         <div
-          className={`h-2 rounded-full transition-all ${barColor}`}
+          className={`h-3 rounded-full transition-all duration-500 ${barColor}`}
           style={{ width: `${Math.min(pct, 100)}%` }}
         />
       </div>
-      {pct >= 100 && (
-        <p className="text-xs text-red-500 mt-1 font-medium">
-          Over budget by {formatMoney(cat.spent - cat.budget_limit)}
-        </p>
-      )}
+      <div className="flex items-center justify-between mt-2">
+        <span className="text-xs text-gray-400">{Math.round(pct)}% used</span>
+        {pct >= 100 && (
+          <span className="text-xs text-red-500 font-medium">
+            Over by {formatMoney(cat.spent - cat.budget_limit)}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

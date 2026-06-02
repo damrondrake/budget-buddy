@@ -224,7 +224,7 @@ export default function Budgets() {
             required
             value={formCatId}
             onChange={(e) => setFormCatId(e.target.value)}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
           >
             <option value="">Select category</option>
             {categories.map((c) => (
@@ -237,7 +237,7 @@ export default function Budgets() {
             value={formLabel}
             onChange={(e) => setFormLabel(e.target.value)}
             placeholder="Label (e.g. Electric)"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
           />
           <input
             type="number"
@@ -246,11 +246,11 @@ export default function Budgets() {
             value={formAmount}
             onChange={(e) => setFormAmount(e.target.value)}
             placeholder="Amount"
-            className="w-full sm:w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            className="w-full sm:w-32 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
           />
           <button
             type="submit"
-            className="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shrink-0"
+            className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
           >
             Save
           </button>
@@ -326,8 +326,8 @@ export default function Budgets() {
                     onClick={() => toggleEdit(b)}
                     className={`p-1.5 rounded transition-colors ${
                       isEditing
-                        ? 'bg-indigo-100 text-indigo-700'
-                        : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50'
                     }`}
                     title={isEditing ? 'Close edit view' : 'Edit budget'}
                     aria-label={isEditing ? 'Close edit view' : 'Edit budget'}
@@ -426,14 +426,14 @@ export default function Budgets() {
                             type="text"
                             value={itemDrafts[li.id]?.label ?? li.label}
                             onChange={(e) => updateItemDraft(li.id, { label: e.target.value })}
-                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                           />
                           <input
                             type="number"
                             step="0.01"
                             value={itemDrafts[li.id]?.amount ?? String(li.amount)}
                             onChange={(e) => updateItemDraft(li.id, { amount: e.target.value })}
-                            className="w-20 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                            className="w-20 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                           />
                           <button
                             type="button"
@@ -487,7 +487,7 @@ export default function Budgets() {
                             value={newItemDraft.label}
                             onChange={(e) => setNewItemDraft({ ...newItemDraft, label: e.target.value })}
                             placeholder="Label"
-                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                           />
                           <input
                             type="number"
@@ -495,12 +495,12 @@ export default function Budgets() {
                             value={newItemDraft.amount}
                             onChange={(e) => setNewItemDraft({ ...newItemDraft, amount: e.target.value })}
                             placeholder="Amount"
-                            className="w-20 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                            className="w-20 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                           />
                           <button
                             type="button"
                             onClick={() => addItemFromEdit(b.id)}
-                            className="px-2 py-1 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors shrink-0"
+                            className="px-2 py-1 bg-emerald-600 text-white text-xs font-medium rounded hover:bg-emerald-700 transition-colors shrink-0"
                           >
                             Add
                           </button>
@@ -541,7 +541,7 @@ export default function Budgets() {
       {/* Who-paid confirmation modal */}
       {payingBudget && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm p-4"
           onClick={() => setPayingBudget(null)}
         >
           <div
@@ -557,7 +557,7 @@ export default function Budgets() {
             <select
               value={payByUserId}
               onChange={(e) => setPayByUserId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none mb-4"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none mb-4"
             >
               {users.map((u) => (
                 <option key={u.id} value={u.id}>{u.name}</option>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import BudgetBuddyLogo from '../components/BudgetBuddyLogo'
 
 export default function Register() {
   const { register } = useAuth()
@@ -30,11 +31,11 @@ export default function Register() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">BudgetBuddy</h1>
-          <p className="text-sm text-gray-500 mt-1">Personal Finance</p>
+        <div className="flex flex-col items-center mb-8">
+          <BudgetBuddyLogo variant="stacked" size="lg" />
+          <p className="text-sm text-gray-500 mt-2">Personal Finance</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-lg">
           <h2 className="text-xl font-semibold text-gray-900 mb-1">Create your account</h2>
           <p className="text-sm text-gray-500 mb-5">Start tracking your budget in seconds.</p>
 
@@ -52,7 +53,7 @@ export default function Register() {
                 required
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                 autoComplete="name"
               />
             </div>
@@ -63,7 +64,7 @@ export default function Register() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                 autoComplete="email"
               />
             </div>
@@ -75,14 +76,14 @@ export default function Register() {
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                 autoComplete="new-password"
               />
             </div>
             <button
               type="submit"
               disabled={submitting}
-              className="w-full px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-400"
+              className="w-full px-5 py-2.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400"
             >
               {submitting ? 'Creating account...' : 'Create account'}
             </button>
@@ -90,7 +91,7 @@ export default function Register() {
 
           <p className="text-sm text-gray-500 mt-5 text-center">
             Already have an account?{' '}
-            <Link to="/login" className="text-indigo-600 font-medium hover:underline">
+            <Link to="/login" className="text-emerald-600 font-medium hover:underline">
               Sign in
             </Link>
           </p>

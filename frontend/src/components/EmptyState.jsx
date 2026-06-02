@@ -1,19 +1,13 @@
+import BudgetBuddyLogo from './BudgetBuddyLogo'
+
 export default function EmptyState({ icon, message }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-10 text-center">
       <div className="flex justify-center mb-3 text-gray-300">
-        {icon || <DefaultIcon />}
+        {icon || <BudgetBuddyLogo variant="icon" size="md" className="opacity-40 grayscale" />}
       </div>
       <p className="text-gray-500 text-sm">{message}</p>
     </div>
-  )
-}
-
-function DefaultIcon() {
-  return (
-    <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-    </svg>
   )
 }
 

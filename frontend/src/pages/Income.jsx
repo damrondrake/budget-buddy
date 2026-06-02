@@ -116,7 +116,7 @@ export default function Income() {
             value={formAmount}
             onChange={(e) => setFormAmount(e.target.value)}
             placeholder="Amount"
-            className="w-full sm:w-36 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            className="w-full sm:w-36 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
           />
           <input
             type="text"
@@ -124,12 +124,12 @@ export default function Income() {
             value={formSource}
             onChange={(e) => setFormSource(e.target.value)}
             placeholder="Source (e.g. Paycheck)"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
           />
           <select
             value={formUser}
             onChange={(e) => setFormUser(e.target.value)}
-            className="w-full sm:w-36 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            className="w-full sm:w-36 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
           >
             {users.map((u) => (
               <option key={u.id} value={u.id}>{u.name}</option>
@@ -137,7 +137,7 @@ export default function Income() {
           </select>
           <button
             type="submit"
-            className="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shrink-0"
+            className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
           >
             {editingId ? 'Save' : 'Add'}
           </button>
@@ -173,7 +173,7 @@ export default function Income() {
               <div className="flex gap-1 shrink-0">
                 <button
                   onClick={() => startEdit(i)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
                   title="Edit"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

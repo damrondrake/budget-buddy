@@ -96,13 +96,13 @@ export default function Settings() {
                 required
                 value={userNames[u.id] || ''}
                 onChange={(e) => setUserNames({ ...userNames, [u.id]: e.target.value })}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
               />
             </div>
           ))}
           <button
             type="submit"
-            className="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+            className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
           >
             Save Names
           </button>
@@ -130,7 +130,7 @@ export default function Settings() {
             value={catName}
             onChange={(e) => setCatName(e.target.value)}
             placeholder="Category name"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
           />
           <div className="flex items-center gap-2">
             <input
@@ -143,7 +143,7 @@ export default function Settings() {
           </div>
           <button
             type="submit"
-            className="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shrink-0"
+            className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
           >
             Add Category
           </button>

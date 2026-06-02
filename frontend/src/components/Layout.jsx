@@ -1,6 +1,9 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { getCumulative } from '../api/client'
+import { formatMoney } from '../utils/format'
+import BudgetBuddyLogo from './BudgetBuddyLogo'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: DashboardIcon },
@@ -13,8 +16,20 @@ const navItems = [
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [cumulative, setCumulative] = useState(null)
   const { account, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Refresh the cumulative net balance whenever the route changes, so it stays
+  // current as the user adds transactions/income across pages.
+  useEffect(() => {
+    let active = true
+    getCumulative()
+      .then((res) => { if (active) setCumulative(res.data) })
+      .catch(() => { if (active) setCumulative(null) })
+    return () => { active = false }
+  }, [location.pathname])
 
   function handleLogout() {
     logout()
@@ -26,7 +41,7 @@ export default function Layout() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+          className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-20 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -35,17 +50,26 @@ export default function Layout() {
       <aside
         className={`
           fixed lg:static inset-y-0 left-0 z-30
-          w-64 bg-gray-900 text-gray-300 flex flex-col
+          w-64 bg-[var(--sidebar)] border-r border-gray-200 text-gray-600 flex flex-col
           transform transition-transform duration-200 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0
         `}
       >
-        <div className="p-6 border-b border-gray-800">
-          <h1 className="text-xl font-bold text-white tracking-tight">
-            BudgetBuddy
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">Personal Finance</p>
+        <div className="p-6 border-b border-gray-200">
+          <BudgetBuddyLogo variant="horizontal" size="sm" />
+          {cumulative && (
+            <div className="mt-4 rounded-xl bg-gray-50 border border-gray-200 px-3.5 py-2.5">
+              <p className="text-[11px] uppercase tracking-wide text-gray-400 font-medium">Cumulative Balance</p>
+              <p
+                className={`text-lg font-bold mt-0.5 ${
+                  cumulative.net_balance >= 0 ? 'text-emerald-600' : 'text-red-500'
+                }`}
+              >
+                {formatMoney(cumulative.net_balance)}
+              </p>
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
@@ -58,8 +82,8 @@ export default function Layout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-indigo-600 text-white'
-                    : 'hover:bg-gray-800 hover:text-white'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`
               }
             >
@@ -69,15 +93,15 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-gray-800 space-y-1">
+        <div className="p-4 border-t border-gray-200 space-y-1">
           <NavLink
             to="/settings"
             onClick={() => setSidebarOpen(false)}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-indigo-600 text-white'
-                  : 'hover:bg-gray-800 hover:text-white'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`
             }
           >
@@ -85,13 +109,19 @@ export default function Layout() {
             Settings
           </NavLink>
           {account && (
-            <div className="px-3 pt-3 pb-1 text-xs text-gray-500 truncate" title={account.email}>
-              {account.display_name}
+            <div className="flex items-center gap-3 px-3 pt-3 pb-1">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-semibold shrink-0">
+                {account.display_name?.[0]?.toUpperCase() || '?'}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{account.display_name}</p>
+                <p className="text-xs text-gray-400 truncate" title={account.email}>{account.email}</p>
+              </div>
             </div>
           )}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-gray-800 hover:text-white text-left"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:bg-gray-100 hover:text-gray-900 text-left"
           >
             <LogoutIcon />
             Sign out
@@ -105,13 +135,13 @@ export default function Layout() {
         <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-1.5 rounded-md hover:bg-gray-100"
+            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-700"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <span className="font-semibold text-gray-900">BudgetBuddy</span>
+          <BudgetBuddyLogo variant="icon" size="sm" />
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">

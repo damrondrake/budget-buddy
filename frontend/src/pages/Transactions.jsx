@@ -197,7 +197,7 @@ export default function Transactions() {
           </button>
           <button
             onClick={openAdd}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+            className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
           >
             + Add
           </button>
@@ -211,7 +211,7 @@ export default function Transactions() {
           className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors rounded-xl"
         >
           <span className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             Recurring Transactions ({recurring.length})
@@ -296,7 +296,7 @@ export default function Transactions() {
                         required
                         value={recurringForm.amount}
                         onChange={(e) => setRecurringForm({ ...recurringForm, amount: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                         placeholder="0.00"
                       />
                     </div>
@@ -309,7 +309,7 @@ export default function Transactions() {
                         required
                         value={recurringForm.day_of_month}
                         onChange={(e) => setRecurringForm({ ...recurringForm, day_of_month: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                       />
                     </div>
                   </div>
@@ -319,7 +319,7 @@ export default function Transactions() {
                       required
                       value={recurringForm.category_id}
                       onChange={(e) => setRecurringForm({ ...recurringForm, category_id: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                     >
                       <option value="">Select category</option>
                       {categories.map((c) => (
@@ -334,7 +334,7 @@ export default function Transactions() {
                       required
                       value={recurringForm.note}
                       onChange={(e) => setRecurringForm({ ...recurringForm, note: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                       placeholder="e.g. Netflix, Rent, Spotify"
                     />
                   </div>
@@ -344,7 +344,7 @@ export default function Transactions() {
                       <select
                         value={recurringForm.paid_by}
                         onChange={(e) => setRecurringForm({ ...recurringForm, paid_by: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                       >
                         {users.map((u) => (
                           <option key={u.id} value={u.id}>{u.name}</option>
@@ -357,7 +357,7 @@ export default function Transactions() {
                           type="checkbox"
                           checked={recurringForm.is_split}
                           onChange={(e) => setRecurringForm({ ...recurringForm, is_split: e.target.checked })}
-                          className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                         />
                         <span className="text-sm text-gray-700">Split</span>
                       </label>
@@ -366,7 +366,7 @@ export default function Transactions() {
                   <div className="flex gap-2">
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                      className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
                     >
                       Add Recurring
                     </button>
@@ -387,7 +387,7 @@ export default function Transactions() {
 
       {/* Modal form */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={closeForm}>
+        <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeForm}>
           <div
             className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6"
             onClick={(e) => e.stopPropagation()}
@@ -405,7 +405,7 @@ export default function Transactions() {
                     required
                     value={form.amount}
                     onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                     placeholder="0.00"
                   />
                 </div>
@@ -416,7 +416,7 @@ export default function Transactions() {
                     required
                     value={form.date}
                     onChange={(e) => setForm({ ...form, date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                   />
                 </div>
               </div>
@@ -433,7 +433,7 @@ export default function Transactions() {
                     required
                     value={form.category_id}
                     onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-                    className={`w-full py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none ${selectedCat ? 'pl-8 pr-3' : 'px-3'}`}
+                    className={`w-full py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none ${selectedCat ? 'pl-8 pr-3' : 'px-3'}`}
                   >
                     <option value="">Select category</option>
                     {categories.map((c) => (
@@ -448,7 +448,7 @@ export default function Transactions() {
                   <select
                     value={form.paid_by}
                     onChange={(e) => setForm({ ...form, paid_by: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                   >
                     {users.map((u) => (
                       <option key={u.id} value={u.id}>{u.name}</option>
@@ -461,7 +461,7 @@ export default function Transactions() {
                       type="checkbox"
                       checked={form.is_split}
                       onChange={(e) => setForm({ ...form, is_split: e.target.checked })}
-                      className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                     />
                     <span className="text-sm text-gray-700">Split expense</span>
                   </label>
@@ -473,14 +473,14 @@ export default function Transactions() {
                   type="text"
                   value={form.note}
                   onChange={(e) => setForm({ ...form, note: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                   placeholder="What was this for?"
                 />
               </div>
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                  className="flex-1 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
                 >
                   {editingId ? 'Save Changes' : 'Add Transaction'}
                 </button>
@@ -502,7 +502,7 @@ export default function Transactions() {
         <select
           value={filterCat}
           onChange={(e) => setFilterCat(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
         >
           <option value="">All Categories</option>
           {categories.map((c) => (
@@ -534,7 +534,7 @@ export default function Transactions() {
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {t.note || t.category_name}
                     {t.is_recurring && (
-                      <span className="ml-2 inline-flex items-center text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-normal">
+                      <span className="ml-2 inline-flex items-center text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-normal">
                         <svg className="w-3 h-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
@@ -553,7 +553,7 @@ export default function Transactions() {
                 <div className="flex gap-1 shrink-0">
                   <button
                     onClick={() => openEdit(t)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
                     title="Edit"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

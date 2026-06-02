@@ -20,6 +20,7 @@ DEFAULT_CATEGORIES = [
     {"name": "Subscriptions", "color": "#14B8A6", "icon": "credit-card"},
     {"name": "Medical Expenses", "color": "#0EA5E9", "icon": "heart-pulse"},
     {"name": "Savings", "color": "#22C55E", "icon": "piggy-bank"},
+    {"name": "Amazon", "color": "#FF9900", "icon": "shopping-bag"},
     {"name": "Other", "color": "#6B7280", "icon": "more-horizontal"},
 ]
 

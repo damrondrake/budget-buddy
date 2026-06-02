@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  Legend,
+  Legend, PieChart, Pie, LineChart, Line, CartesianGrid,
 } from 'recharts'
 import { getTrends } from '../api/client'
 import { formatMoney } from '../utils/format'
@@ -102,12 +102,12 @@ export default function Trends() {
           <StatCard
             label="Amount Saved"
             value={formatMoney(saved)}
-            color={saved >= 0 ? 'text-indigo-600' : 'text-red-500'}
+            color={saved >= 0 ? 'text-emerald-600' : 'text-red-500'}
           />
           <StatCard
             label="Savings Rate"
             value={`${savingsRate}%`}
-            color={saved >= 0 ? 'text-indigo-600' : 'text-red-500'}
+            color={saved >= 0 ? 'text-emerald-600' : 'text-red-500'}
             tooltip="Savings Rate = (Income - Spending) / Income × 100. This shows what percentage of your income you kept this month."
           />
         </div>
@@ -131,7 +131,7 @@ export default function Trends() {
               {months.map((_, idx) => (
                 <Cell
                   key={idx}
-                  fill={idx === selectedIdx ? '#4f46e5' : '#c7d2fe'}
+                  fill={idx === selectedIdx ? '#10b981' : '#a7f3d0'}
                 />
               ))}
             </Bar>
@@ -204,6 +204,73 @@ export default function Trends() {
                   </span>
                 </div>
               ))}
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* New charts: per-category breakdown for the selected month + over-time lines */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Spending breakdown pie for the selected month */}
+        <section className="bg-white rounded-xl border border-gray-200 p-5">
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">Spending Breakdown</h2>
+          <p className="text-xs text-gray-400 mb-4">{selected ? selected.label : ''}</p>
+          {selected && selected.categories.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={selected.categories}
+                  dataKey="amount"
+                  nameKey="category_name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={90}
+                  stroke="#fff"
+                  strokeWidth={2}
+                >
+                  {selected.categories.map((c) => (
+                    <Cell key={c.category_id} fill={c.color} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v, name) => [formatMoney(v), name]} />
+                <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[300px] text-gray-400 text-sm">
+              No spending this month.
+            </div>
+          )}
+        </section>
+
+        {/* Per-category spending over the last 6 months — one line per category */}
+        <section className="bg-white rounded-xl border border-gray-200 p-5">
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">Category Spending Over Time</h2>
+          <p className="text-xs text-gray-400 mb-4">Last {months.length} months — each line is a category</p>
+          {allCats.size > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={stackedData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="label" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                <Tooltip formatter={(v, name) => [formatMoney(v), name]} />
+                <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} />
+                {[...allCats.entries()].map(([catId, cat]) => (
+                  <Line
+                    key={catId}
+                    type="monotone"
+                    dataKey={cat.name}
+                    stroke={cat.color}
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[300px] text-gray-400 text-sm">
+              No spending data available.
             </div>
           )}
         </section>

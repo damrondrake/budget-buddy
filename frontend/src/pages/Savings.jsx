@@ -162,7 +162,7 @@ export default function Savings() {
             value={formName}
             onChange={(e) => setFormName(e.target.value)}
             placeholder="Goal name (e.g. Christmas Savings)"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
           />
           <div className="flex items-center gap-1.5">
             {PALETTE.map((c) => (
@@ -180,7 +180,7 @@ export default function Savings() {
           </div>
           <button
             type="submit"
-            className="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shrink-0"
+            className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
           >
             Create Goal
           </button>
@@ -285,7 +285,7 @@ export default function Savings() {
                     value={draft.label}
                     onChange={(e) => updateAllocDraft(goal.id, { label: e.target.value })}
                     placeholder="Allocation (e.g. Drake)"
-                    className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                   />
                   <input
                     type="number"
@@ -293,7 +293,7 @@ export default function Savings() {
                     value={draft.target}
                     onChange={(e) => updateAllocDraft(goal.id, { target: e.target.value })}
                     placeholder="Target"
-                    className="w-24 px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    className="w-24 px-2 py-1.5 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                   />
                   <button
                     type="button"
@@ -365,7 +365,7 @@ export default function Savings() {
       {/* Deposit / Withdraw modal */}
       {txnGoal && txnForm && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm p-4"
           onClick={() => { setTxnGoal(null); setTxnForm(null) }}
         >
           <form
@@ -405,13 +405,13 @@ export default function Savings() {
                 value={txnForm.amount}
                 onChange={(e) => setTxnForm((f) => ({ ...f, amount: e.target.value }))}
                 placeholder="Amount"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
               />
 
               <select
                 value={txnForm.allocation_id}
                 onChange={(e) => setTxnForm((f) => ({ ...f, allocation_id: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
               >
                 <option value="">General (no allocation)</option>
                 {txnGoal.allocations.map((a) => (
@@ -425,7 +425,7 @@ export default function Savings() {
                   <select
                     value={txnForm.paid_by}
                     onChange={(e) => setTxnForm((f) => ({ ...f, paid_by: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                   >
                     {users.map((u) => (
                       <option key={u.id} value={u.id}>{u.name}</option>
@@ -442,7 +442,7 @@ export default function Savings() {
                 required
                 value={txnForm.date}
                 onChange={(e) => setTxnForm((f) => ({ ...f, date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
               />
 
               <input
@@ -450,7 +450,7 @@ export default function Savings() {
                 value={txnForm.note}
                 onChange={(e) => setTxnForm((f) => ({ ...f, note: e.target.value }))}
                 placeholder="Note (optional)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
               />
             </div>
 
@@ -464,7 +464,7 @@ export default function Savings() {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
               >
                 Confirm
               </button>

@@ -66,7 +66,12 @@ def get_summary(
     budgets = db.query(Budget).filter(
         Budget.account_id == account.id, Budget.month == month, Budget.year == year
     ).all()
-    budget_map = {b.category_id: b.amount_limit for b in budgets}
+    # Line items drive the real budget total; amount_limit is only the fallback
+    # when a budget has no line items. Mirror the Budgets page so the Dashboard
+    # doesn't read a line-item budget (amount_limit == 0) as "no budget".
+    def budget_total(b: Budget) -> float:
+        return sum(li.amount for li in b.line_items) if b.line_items else b.amount_limit
+    budget_map = {b.category_id: round(budget_total(b), 2) for b in budgets}
 
     categories = db.query(Category).filter(Category.account_id == account.id).all()
 
