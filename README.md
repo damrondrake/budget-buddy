@@ -10,7 +10,7 @@
 [![Deployed on Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com/)
 [![Deployed on Railway](https://img.shields.io/badge/Backend-Railway-0B0D0E?logo=railway&logoColor=white)](https://railway.app/)
 
-### 🔗 [**Live Demo →**](https://budget-buddy-lovat-nine.vercel.app)
+### 🔗 [**Live Demo →**](https://budget-buddy-app.com)
 
 ---
 
@@ -52,7 +52,7 @@ BudgetBuddy is a full-stack personal finance dashboard built for real-world use.
 
 ## 📸 Screenshots
 
-> 🚧 **Screenshots coming soon!** In the meantime, check out the [**live demo**](https://budget-buddy-lovat-nine.vercel.app) to see BudgetBuddy in action.
+> 🚧 **Screenshots coming soon!** In the meantime, check out the [**live demo**](https://budget-buddy-app.com) to see BudgetBuddy in action.
 
 ---
 
@@ -133,7 +133,7 @@ Set these in the Railway backend service under **Variables**:
 | `CORS_ORIGINS` | ✅ | Comma-separated list of allowed frontend origins (e.g. your Vercel URL). |
 | `RESEND_API_KEY` | ⬜ | [Resend](https://resend.com) API key for sending password-reset and partner-invite emails. **Without it, those emails are skipped** (the flows still work locally and return a debug token, but no email is sent in production). |
 | `RESEND_FROM_EMAIL` | ⬜ | Sender address for outgoing emails. Defaults to Resend's shared sandbox (`BudgetBuddy <onboarding@resend.dev>`). Set to a verified-domain address (e.g. `BudgetBuddy <noreply@yourdomain.com>`) for production delivery. |
-| `FRONTEND_URL` | ⬜ | Base URL used to build links in reset/invite emails. Defaults to the production site (`https://budget-buddy-lovat-nine.vercel.app`). Set this so email links point at your deployed frontend. |
+| `FRONTEND_URL` | ⬜ | Base URL used to build links in reset/invite emails. Defaults to the production site (`https://budget-buddy-app.com`). Set this so email links point at your deployed frontend. |
 
 > **Note:** `RESEND_API_KEY` and `FRONTEND_URL` are needed for password reset and partner invite emails to work on the live site. If `RESEND_API_KEY` is unset, the API still responds successfully but no email is sent.
 

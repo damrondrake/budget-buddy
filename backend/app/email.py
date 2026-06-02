@@ -17,7 +17,7 @@ logger = logging.getLogger("budgetbuddy.email")
 
 # Resend's shared sandbox sender works without verifying a domain.
 DEFAULT_FROM_EMAIL = "BudgetBuddy <onboarding@resend.dev>"
-DEFAULT_FRONTEND_URL = "https://budget-buddy-lovat-nine.vercel.app"
+DEFAULT_FRONTEND_URL = "https://budget-buddy-app.com"
 
 
 # Read env vars lazily (at call time) rather than caching them at import time,
