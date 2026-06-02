@@ -9,7 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.email import RESEND_API_KEY, FROM_EMAIL, FRONTEND_URL
 from app.routers import auth, transactions, budgets, categories, income, summary, users, recurring, trends, savings
 
-load_dotenv()
+# override=False so platform-injected env vars (Railway) always win over any .env file.
+load_dotenv(override=False)
 
 # Log via uvicorn's logger so this shows up in Railway's deploy logs.
 _log = logging.getLogger("uvicorn.error")
@@ -26,7 +27,15 @@ async def lifespan(app: FastAPI):
         bool(os.getenv("RESEND_FROM_EMAIL")),
         FRONTEND_URL,
     )
-    if not RESEND_API_KEY:
+    if RESEND_API_KEY:
+        # Confirm Railway is injecting the right value: prefix only, never the
+        # full secret. Logging length too surfaces stray whitespace/newlines.
+        _log.info(
+            "RESEND_API_KEY detected - prefix: %s... (length %d)",
+            RESEND_API_KEY[:8],
+            len(RESEND_API_KEY),
+        )
+    else:
         _log.warning(
             "RESEND_API_KEY is NOT set - password-reset and invite emails will be "
             "skipped (endpoints still return 200). Set it in Railway -> backend "

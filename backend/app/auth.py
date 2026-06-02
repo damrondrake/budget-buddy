@@ -12,7 +12,8 @@ from app.database import get_db
 from app.models.account import Account
 from app.models.account_member import AccountMember
 
-load_dotenv()
+# override=False so platform-injected env vars (Railway) always win over any .env file.
+load_dotenv(override=False)
 
 SECRET_KEY = os.environ["SECRET_KEY"]
 ALGORITHM = "HS256"

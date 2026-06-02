@@ -9,7 +9,9 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv()
+# override=False: never let a local .env clobber variables the platform
+# (e.g. Railway) has already injected into the environment.
+load_dotenv(override=False)
 
 logger = logging.getLogger("budgetbuddy.email")
 
