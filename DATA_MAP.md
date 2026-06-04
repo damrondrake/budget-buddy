@@ -18,10 +18,13 @@ as the schema evolves.
 | Passwords | Hashed with bcrypt; never stored in plaintext |
 | Transport | HTTPS/TLS in transit |
 | Auth tokens | JWT (HS256), stored client-side in browser `localStorage` only |
+| Error tracking | [Sentry](https://sentry.io); may collect IP addresses + request data for bug diagnostics |
 
 We do **not** integrate with banks, payment processors, or third-party analytics/ad
-networks. All financial data is entered manually by users. No personal data is sold
-or shared with third parties.
+networks. All financial data is entered manually by users. No personal data is sold or
+shared with third parties for advertising or marketing. We use **Sentry** for error
+tracking, which may collect IP addresses and request data to help diagnose bugs; it
+processes this data strictly on our behalf to operate the service.
 
 ## Data Subjects
 
@@ -182,7 +185,8 @@ Deposits/withdrawals against a goal. **Financial.**
 | Invited members | Full read/write | The shared account they were invited to (resolved via `account_members`) |
 | Application | Programmatic | Enforces per-request scoping so an account can only read/write its own `account_id` rows |
 | Operators/Developers | Infrastructure | Railway project members with database access, for maintenance only |
-| Third parties | **None** | Data is never sold or shared |
+| Sentry (sub-processor) | Error events only | Receives IP addresses + request data from crashes, strictly to diagnose bugs |
+| Third parties (advertising/sale) | **None** | Data is never sold or shared for advertising or marketing |
 
 Every data table carries an `account_id`, and all API requests are scoped to the
 caller's account (see `app/auth.py::get_current_account`). Members never gain access

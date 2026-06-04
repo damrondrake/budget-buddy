@@ -10,13 +10,15 @@
 [![Deployed on Vercel](https://img.shields.io/badge/Frontend-Vercel-000000?logo=vercel&logoColor=white)](https://vercel.com/)
 [![Deployed on Railway](https://img.shields.io/badge/Backend-Railway-0B0D0E?logo=railway&logoColor=white)](https://railway.app/)
 
-### 🔗 [**Live Demo →**](https://budget-buddy-app.com)
+### 🔗 [**Open the App →**](https://budget-buddy-app.com)
 
 ---
 
 ## 📖 About
 
 BudgetBuddy is a full-stack personal finance dashboard built for real-world use. It helps people understand where their money goes by bringing transactions, category budgets, income, savings goals, and spending trends together in a single, intuitive view. The app supports multiple users — each with their own securely isolated data — making it a practical tool for anyone serious about managing their finances.
+
+It's a live, hosted product — not a template or a starter kit. The source here documents what powers the app behind the scenes.
 
 ---
 
@@ -35,6 +37,16 @@ BudgetBuddy is a full-stack personal finance dashboard built for real-world use.
 
 ---
 
+## 🚀 Use the App
+
+BudgetBuddy is a live, hosted web app — there's nothing to install or configure. Open it in your browser, create a free account, and start tracking your money in minutes:
+
+### 👉 [**budget-buddy-app.com**](https://budget-buddy-app.com)
+
+Works on desktop and mobile.
+
+---
+
 ## 🛠️ Tech Stack
 
 | Frontend | Backend |
@@ -47,124 +59,13 @@ BudgetBuddy is a full-stack personal finance dashboard built for real-world use.
 | Axios | bcrypt |
 
 **Hosting:** Vercel (frontend) · Railway (backend + database)
+**Reliability:** Sentry error tracking across frontend and backend · rate limiting · server-side validation · security headers
 
 ---
 
 ## 📸 Screenshots
 
-> 🚧 **Screenshots coming soon!** In the meantime, check out the [**live demo**](https://budget-buddy-app.com) to see BudgetBuddy in action.
-
----
-
-## 🚀 Getting Started
-
-Follow these steps to run BudgetBuddy locally.
-
-### Prerequisites
-
-- Python 3.11+
-- Node.js 18+
-
-### 1. Clone the repo
-
-```bash
-git clone https://github.com/damrondrake/budget-buddy.git
-cd budget-buddy
-```
-
-### 2. Backend setup
-
-```bash
-cd backend
-
-# Create and activate a virtual environment
-python -m venv .venv
-
-# Windows
-.venv\Scripts\activate
-# macOS/Linux
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment variables
-cp .env.example .env   # then edit .env with your database URL and settings
-
-# Run database migrations
-alembic upgrade head
-
-# Start the API server
-uvicorn app.main:app --reload --port 8000
-```
-
-The API will be available at `http://localhost:8000`, with interactive docs at `http://localhost:8000/docs`.
-
-### 3. Frontend setup
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Configure environment variables
-# Create a .env file and set:
-#   VITE_API_URL=http://localhost:8000
-
-# Start the dev server
-npm run dev
-```
-
-The app will be available at `http://localhost:5173`.
-
----
-
-## 🔑 Environment Variables
-
-### Backend (Railway)
-
-Set these in the Railway backend service under **Variables**:
-
-| Variable | Required | Description |
-| --- | --- | --- |
-| `DATABASE_URL` | ✅ | PostgreSQL connection string (Railway provides this automatically when you add a Postgres plugin). |
-| `SECRET_KEY` | ✅ | Secret used to sign JWT access tokens. Use a long random string. |
-| `CORS_ORIGINS` | ✅ | Comma-separated list of allowed frontend origins (e.g. your Vercel URL). |
-| `RESEND_API_KEY` | ⬜ | [Resend](https://resend.com) API key for sending password-reset and partner-invite emails. **Without it, those emails are skipped** (the flows still work locally and return a debug token, but no email is sent in production). |
-| `RESEND_FROM_EMAIL` | ⬜ | Sender address for outgoing emails. Defaults to Resend's shared sandbox (`BudgetBuddy <onboarding@resend.dev>`). Set to a verified-domain address (e.g. `BudgetBuddy <noreply@yourdomain.com>`) for production delivery. |
-| `FRONTEND_URL` | ⬜ | Base URL used to build links in reset/invite emails. Defaults to the production site (`https://budget-buddy-app.com`). Set this so email links point at your deployed frontend. |
-| `SENTRY_DSN` | ⬜ | [Sentry](https://sentry.io) DSN for backend error tracking. When set, unhandled exceptions are reported with full request context. Leave blank to disable. See [Error tracking with Sentry](#-error-tracking-with-sentry). |
-
-> **Note:** `RESEND_API_KEY` and `FRONTEND_URL` are needed for password reset and partner invite emails to work on the live site. If `RESEND_API_KEY` is unset, the API still responds successfully but no email is sent.
-
-### Frontend (Vercel)
-
-| Variable | Required | Description |
-| --- | --- | --- |
-| `VITE_API_URL` | ✅ | Base URL of the backend API (e.g. `https://your-backend.up.railway.app`). |
-| `VITE_SENTRY_DSN` | ⬜ | [Sentry](https://sentry.io) DSN for frontend error tracking. When set, render crashes caught by the error boundary are reported. Leave blank to disable. See [Error tracking with Sentry](#-error-tracking-with-sentry). |
-
----
-
-## 🛰️ Error tracking with Sentry
-
-BudgetBuddy can report crashes from both the frontend and backend to [Sentry](https://sentry.io) so you get a full stack trace and request context for every error. It's **optional** — both apps only initialize Sentry when their DSN environment variable is set, so local development stays clean and unreported.
-
-### Get a free Sentry DSN
-
-1. Create a free account at [sentry.io](https://sentry.io/signup/) (the free Developer tier is plenty for this app).
-2. Click **Create Project** (or **Projects → Create Project**).
-3. Choose a platform:
-   - **React** for the frontend project.
-   - **FastAPI** (under Python) for the backend project.
-   - Tip: create **two separate projects** so frontend and backend errors stay grouped apart.
-4. After creating the project, Sentry shows a **DSN** — a URL like `https://abc123@o456.ingest.sentry.io/789`. You can always find it again under **Settings → Projects → [your project] → Client Keys (DSN)**.
-5. Add the DSN as an environment variable:
-   - Backend (Railway): set `SENTRY_DSN` to the FastAPI project's DSN.
-   - Frontend (Vercel): set `VITE_SENTRY_DSN` to the React project's DSN, then redeploy so Vite picks it up at build time.
-
-Both apps sample 10% of performance traces (`tracesSampleRate = 0.1`) to comfortably stay within the free tier.
+> 🚧 **Screenshots coming soon!** In the meantime, open the [**live app**](https://budget-buddy-app.com) to see BudgetBuddy in action.
 
 ---
 

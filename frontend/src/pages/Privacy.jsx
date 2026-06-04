@@ -67,8 +67,15 @@ export default function Privacy() {
             <p>
               We <span className="font-medium text-gray-700">never sell your data</span>, and we{' '}
               <span className="font-medium text-gray-700">never share it with third parties</span> for
-              advertising, marketing, or any other purpose. There are no advertising trackers or analytics
-              profiles built from your financial activity.
+              advertising or marketing. There are no advertising trackers or analytics profiles built from
+              your financial activity.
+            </p>
+            <p>
+              To keep the service running reliably, we use a small number of service providers that process
+              data strictly on our behalf. In particular, we use{' '}
+              <span className="font-medium text-gray-700">Sentry</span> for error tracking, which may collect
+              IP addresses and request data to help us diagnose bugs. These providers are not permitted to use
+              your data for any purpose other than operating the service.
             </p>
           </Section>
 
