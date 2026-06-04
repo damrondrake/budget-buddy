@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
-import { updateUser, getCategories, createCategory, deleteCategory, invitePartner } from '../api/client'
+import { useNavigate } from 'react-router-dom'
+import { updateUser, getCategories, createCategory, deleteCategory, invitePartner, deleteAccount } from '../api/client'
 import { useUsers } from '../context/UsersContext'
 import { useAuth } from '../context/AuthContext'
 import IconButton from '../components/ui/IconButton'
 
 export default function Settings() {
   const { users, refreshUsers } = useUsers()
-  const { account } = useAuth()
+  const { account, logout } = useAuth()
+  const navigate = useNavigate()
   const [userNames, setUserNames] = useState({})
   const [userMsg, setUserMsg] = useState(null)
   const [categories, setCategories] = useState([])
@@ -16,6 +18,11 @@ export default function Settings() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteMsg, setInviteMsg] = useState(null)
   const [inviting, setInviting] = useState(false)
+  // Account deletion (GDPR/CCPA right to erasure)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
 
   useEffect(() => {
     fetchCategories()
@@ -80,6 +87,27 @@ export default function Settings() {
     } catch (err) {
       const detail = err.response?.data?.detail || 'Failed to add category.'
       setCatMsg({ type: 'error', text: detail })
+    }
+  }
+
+  function openDeleteModal() {
+    setDeleteConfirmText('')
+    setDeleteError(null)
+    setShowDeleteModal(true)
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteError(null)
+    setDeleting(true)
+    try {
+      await deleteAccount()
+      // Clear the local session and send the user to a fresh sign-in screen.
+      logout()
+      navigate('/login', { replace: true })
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to delete your account. Please try again.'
+      setDeleteError(detail)
+      setDeleting(false)
     }
   }
 
@@ -248,6 +276,76 @@ export default function Settings() {
           ))}
         </div>
       </section>
+
+      {/* Danger Zone — account deletion (GDPR/CCPA right to erasure) */}
+      <section className="bg-white rounded-xl border border-red-200 p-5 mt-6">
+        <h2 className="text-lg font-semibold text-red-600 mb-1">Danger Zone</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Permanently delete your account and everything in it — transactions, budgets, income,
+          savings, and categories. This cannot be undone.
+        </p>
+        <button
+          type="button"
+          onClick={openDeleteModal}
+          className="inline-flex items-center justify-center min-h-[44px] px-5 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+        >
+          Delete My Account
+        </button>
+      </section>
+
+      {/* Delete account confirmation modal */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm p-4"
+          onClick={() => !deleting && setShowDeleteModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete your account?</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              This will <span className="font-semibold text-gray-900">permanently delete</span> your
+              account{account?.member_count > 1 ? ' and all data shared on it' : ''} — including every
+              transaction, budget, income entry, savings goal, and category. This action{' '}
+              <span className="font-semibold text-red-600">cannot be undone</span> and your data{' '}
+              <span className="font-semibold text-red-600">cannot be recovered</span>.
+            </p>
+            <p className="text-sm text-gray-600 mb-2">
+              Type <span className="font-mono font-semibold text-gray-900">DELETE</span> to confirm.
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="DELETE"
+              autoFocus
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:bg-white outline-none mb-4"
+            />
+            {deleteError && (
+              <p className="text-sm text-red-600 mb-4">{deleteError}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleting || deleteConfirmText !== 'DELETE'}
+                className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? 'Deleting...' : 'Delete Permanently'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

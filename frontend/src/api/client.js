@@ -36,6 +36,7 @@ export const acceptInviteLogin = (token, email, password) =>
   api.post('/auth/accept-invite/login', { token, email, password })
 export const acceptInviteRegister = (token, email, password, displayName) =>
   api.post('/auth/accept-invite/register', { token, email, password, display_name: displayName })
+export const deleteAccount = () => api.delete('/auth/account')
 
 // Transactions
 export const getTransactions = (params) => api.get('/transactions', { params })

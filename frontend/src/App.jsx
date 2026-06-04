@@ -14,6 +14,7 @@ import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import AcceptInvite from './pages/AcceptInvite'
+import Privacy from './pages/Privacy'
 
 function RequireAuth({ children }) {
   const { isAuthenticated, loading } = useAuth()
@@ -59,6 +60,8 @@ export default function App() {
             </RedirectIfAuthed>
           }
         />
+        {/* Always-public pages — reachable whether or not signed in. */}
+        <Route path="/privacy" element={<Privacy />} />
         {/* Public token-based flows — reachable whether or not signed in. */}
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />

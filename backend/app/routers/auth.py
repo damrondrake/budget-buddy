@@ -17,6 +17,12 @@ from app.models.account import Account
 from app.models.account_member import AccountMember
 from app.models.user import User
 from app.models.category import Category
+from app.models.budget import Budget
+from app.models.budget_line_item import BudgetLineItem
+from app.models.recurring import RecurringTransaction
+from app.models.transaction import Transaction
+from app.models.income import Income
+from app.models.savings import SavingsGoal, SavingsAllocation, SavingsTransaction
 from app.schemas.auth import (
     RegisterRequest,
     LoginRequest,
@@ -111,6 +117,62 @@ def me(
         member_count=_member_count(db, effective.id),
         role="member" if is_member else "owner",
     )
+
+
+# ---------------------------------------------------------------------------
+# Account deletion (GDPR / CCPA right to erasure)
+# ---------------------------------------------------------------------------
+
+
+@router.delete("/account", response_model=MessageResponse)
+def delete_account(
+    db: Session = Depends(get_db),
+    token_account: Account = Depends(get_token_account),
+):
+    """Permanently delete the caller's own account and ALL associated data.
+
+    Scoped to ``token_account`` (the logged-in person's own account), never the
+    effective/shared account — so a member who joined someone else's account can
+    only erase their own account, not the owner's data.
+
+    Rows are removed child-first to satisfy foreign keys on Postgres (SQLite
+    doesn't enforce them by default, but the order is correct for both). Every
+    data table carries an ``account_id``, so a single filtered delete per table
+    clears everything this account owns. We also remove this account's
+    membership links — both members it invited and its own memberships in other
+    people's accounts — before deleting the account row itself.
+    """
+    aid = token_account.id
+
+    # Child-first so FK constraints are never violated.
+    deletion_order = [
+        BudgetLineItem,        # -> budgets
+        Transaction,           # -> categories, users, recurring_transactions
+        Budget,                # -> categories
+        RecurringTransaction,  # -> categories, users
+        Income,                # -> users
+        SavingsTransaction,    # -> savings_goals, savings_allocations
+        SavingsAllocation,     # -> savings_goals
+        SavingsGoal,
+        Category,
+        User,
+    ]
+    for model in deletion_order:
+        db.query(model).filter(model.account_id == aid).delete(synchronize_session=False)
+
+    # Membership links: people invited to this account, and this account's own
+    # memberships in other shared accounts (matched by email).
+    db.query(AccountMember).filter(AccountMember.account_id == aid).delete(
+        synchronize_session=False
+    )
+    db.query(AccountMember).filter(
+        AccountMember.user_email == token_account.email
+    ).delete(synchronize_session=False)
+
+    db.delete(token_account)
+    db.commit()
+
+    return MessageResponse(message="Your account and all associated data have been permanently deleted.")
 
 
 # ---------------------------------------------------------------------------
