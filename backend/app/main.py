@@ -2,10 +2,13 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
+import sentry_sdk
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -20,6 +23,22 @@ load_dotenv(override=False)
 
 # Log via uvicorn's logger so this shows up in Railway's deploy logs.
 _log = logging.getLogger("uvicorn.error")
+
+# Initialize Sentry before the app is created so its FastAPI/Starlette
+# middleware wraps every request. Only when SENTRY_DSN is set, so local dev
+# isn't reported. Unhandled exceptions are captured with full request context.
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        traces_sample_rate=0.1,
+        environment=os.getenv("ENVIRONMENT", "production"),
+        integrations=[
+            StarletteIntegration(),
+            FastApiIntegration(),
+        ],
+    )
+    _log.info("Sentry error tracking enabled.")
 
 
 @asynccontextmanager

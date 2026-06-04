@@ -134,6 +134,7 @@ Set these in the Railway backend service under **Variables**:
 | `RESEND_API_KEY` | ⬜ | [Resend](https://resend.com) API key for sending password-reset and partner-invite emails. **Without it, those emails are skipped** (the flows still work locally and return a debug token, but no email is sent in production). |
 | `RESEND_FROM_EMAIL` | ⬜ | Sender address for outgoing emails. Defaults to Resend's shared sandbox (`BudgetBuddy <onboarding@resend.dev>`). Set to a verified-domain address (e.g. `BudgetBuddy <noreply@yourdomain.com>`) for production delivery. |
 | `FRONTEND_URL` | ⬜ | Base URL used to build links in reset/invite emails. Defaults to the production site (`https://budget-buddy-app.com`). Set this so email links point at your deployed frontend. |
+| `SENTRY_DSN` | ⬜ | [Sentry](https://sentry.io) DSN for backend error tracking. When set, unhandled exceptions are reported with full request context. Leave blank to disable. See [Error tracking with Sentry](#-error-tracking-with-sentry). |
 
 > **Note:** `RESEND_API_KEY` and `FRONTEND_URL` are needed for password reset and partner invite emails to work on the live site. If `RESEND_API_KEY` is unset, the API still responds successfully but no email is sent.
 
@@ -142,6 +143,28 @@ Set these in the Railway backend service under **Variables**:
 | Variable | Required | Description |
 | --- | --- | --- |
 | `VITE_API_URL` | ✅ | Base URL of the backend API (e.g. `https://your-backend.up.railway.app`). |
+| `VITE_SENTRY_DSN` | ⬜ | [Sentry](https://sentry.io) DSN for frontend error tracking. When set, render crashes caught by the error boundary are reported. Leave blank to disable. See [Error tracking with Sentry](#-error-tracking-with-sentry). |
+
+---
+
+## 🛰️ Error tracking with Sentry
+
+BudgetBuddy can report crashes from both the frontend and backend to [Sentry](https://sentry.io) so you get a full stack trace and request context for every error. It's **optional** — both apps only initialize Sentry when their DSN environment variable is set, so local development stays clean and unreported.
+
+### Get a free Sentry DSN
+
+1. Create a free account at [sentry.io](https://sentry.io/signup/) (the free Developer tier is plenty for this app).
+2. Click **Create Project** (or **Projects → Create Project**).
+3. Choose a platform:
+   - **React** for the frontend project.
+   - **FastAPI** (under Python) for the backend project.
+   - Tip: create **two separate projects** so frontend and backend errors stay grouped apart.
+4. After creating the project, Sentry shows a **DSN** — a URL like `https://abc123@o456.ingest.sentry.io/789`. You can always find it again under **Settings → Projects → [your project] → Client Keys (DSN)**.
+5. Add the DSN as an environment variable:
+   - Backend (Railway): set `SENTRY_DSN` to the FastAPI project's DSN.
+   - Frontend (Vercel): set `VITE_SENTRY_DSN` to the React project's DSN, then redeploy so Vite picks it up at build time.
+
+Both apps sample 10% of performance traces (`tracesSampleRate = 0.1`) to comfortably stay within the free tier.
 
 ---
 

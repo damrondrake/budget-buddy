@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import * as Sentry from '@sentry/react'
 import BudgetBuddyLogo from './BudgetBuddyLogo'
 
 // Class component because only class components can be React error boundaries.
@@ -15,9 +16,13 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    // Surface the error in the console for debugging; in production this is
-    // where you'd forward to an error-reporting service.
+    // Surface the error in the console for debugging...
     console.error('ErrorBoundary caught an error:', error, info)
+    // ...and report it to Sentry with the React component stack. This is a
+    // no-op when Sentry isn't initialized (no DSN), so local dev is unaffected.
+    Sentry.captureException(error, {
+      contexts: { react: { componentStack: info?.componentStack } },
+    })
   }
 
   handleReset = () => {
