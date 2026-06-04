@@ -1,18 +1,20 @@
 from pydantic import BaseModel
 
+from app.schemas.common import Amount, Label100
+
 
 class IncomeCreate(BaseModel):
     user_id: int
-    amount: float
-    source: str
+    amount: Amount
+    source: Label100
     month: int
     year: int
 
 
 class IncomeUpdate(BaseModel):
     user_id: int
-    amount: float
-    source: str
+    amount: Amount
+    source: Label100
 
 
 class IncomeOut(BaseModel):

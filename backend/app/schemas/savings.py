@@ -3,23 +3,25 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from app.schemas.common import BoundedDate, Label100, NoteStr, PositiveAmount, TargetAmount
+
 
 class SavingsGoalCreate(BaseModel):
-    name: str
+    name: Label100
     color: str
 
 
 class SavingsAllocationCreate(BaseModel):
-    label: str
-    target_amount: float
+    label: Label100
+    target_amount: TargetAmount
 
 
 class SavingsTransactionCreate(BaseModel):
-    amount: float
+    amount: PositiveAmount
     type: Literal["deposit", "withdrawal"]
     allocation_id: int | None = None
-    note: str | None = None
-    date: date_type
+    note: NoteStr | None = None
+    date: BoundedDate
     # Required for deposits — the user who paid into savings (recorded as a
     # regular transaction). Ignored for withdrawals.
     paid_by: int | None = None

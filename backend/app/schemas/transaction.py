@@ -1,23 +1,25 @@
 from datetime import date as date_type
 from pydantic import BaseModel
 
+from app.schemas.common import Amount, BoundedDate, NoteStr
+
 
 class TransactionCreate(BaseModel):
-    amount: float
+    amount: Amount
     category_id: int
     paid_by: int
     is_split: bool = False
-    date: date_type
-    note: str | None = None
+    date: BoundedDate
+    note: NoteStr | None = None
 
 
 class TransactionUpdate(BaseModel):
-    amount: float | None = None
+    amount: Amount | None = None
     category_id: int | None = None
     paid_by: int | None = None
     is_split: bool | None = None
-    date: date_type | None = None
-    note: str | None = None
+    date: BoundedDate | None = None
+    note: NoteStr | None = None
 
 
 class TransactionOut(BaseModel):

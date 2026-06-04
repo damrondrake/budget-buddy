@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field
 
+from app.schemas.common import DisplayName
+
 # Minimum length for any password the user sets. Enforced server-side so a
 # tampered/non-browser client can't create weak credentials.
 MIN_PASSWORD_LENGTH = 8
@@ -8,7 +10,7 @@ MIN_PASSWORD_LENGTH = 8
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=MIN_PASSWORD_LENGTH)
-    display_name: str
+    display_name: DisplayName
 
 
 class LoginRequest(BaseModel):
@@ -62,4 +64,4 @@ class AcceptInviteRegister(BaseModel):
     token: str
     email: EmailStr
     password: str = Field(min_length=MIN_PASSWORD_LENGTH)
-    display_name: str
+    display_name: DisplayName

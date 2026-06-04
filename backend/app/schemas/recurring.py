@@ -1,13 +1,15 @@
 from pydantic import BaseModel
 
+from app.schemas.common import Amount, DayOfMonth, NoteStr
+
 
 class RecurringCreate(BaseModel):
-    amount: float
+    amount: Amount
     category_id: int
     paid_by: int
     is_split: bool = False
-    day_of_month: int
-    note: str
+    day_of_month: DayOfMonth
+    note: NoteStr
 
 
 class RecurringOut(BaseModel):

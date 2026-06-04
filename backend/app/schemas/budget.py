@@ -1,9 +1,11 @@
 from pydantic import BaseModel
 
+from app.schemas.common import Amount, Label100, NonNegativeAmount, NoteStr
+
 
 class BudgetLineItemCreate(BaseModel):
-    label: str
-    amount: float
+    label: Label100
+    amount: Amount
 
 
 class BudgetLineItemOut(BaseModel):
@@ -18,8 +20,8 @@ class BudgetCreate(BaseModel):
     category_id: int
     month: int
     year: int
-    amount_limit: float
-    note: str | None = None
+    amount_limit: NonNegativeAmount
+    note: NoteStr | None = None
 
 
 class BudgetOut(BaseModel):

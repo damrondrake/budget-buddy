@@ -5,9 +5,11 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.email import get_resend_api_key, get_frontend_url
 from app.routers import auth, transactions, budgets, categories, income, summary, users, recurring, trends, savings
@@ -93,6 +95,29 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# --- Database error handling ------------------------------------------------
+# Never surface a raw SQLAlchemy/DB error (which can leak table names, SQL, or
+# connection details) to the client. Log the detail server-side and return a
+# clean, generic response. IntegrityError (unique/FK/constraint violations)
+# maps to 409 Conflict; any other DB error maps to 400 Bad Request.
+@app.exception_handler(IntegrityError)
+async def handle_integrity_error(request: Request, exc: IntegrityError) -> JSONResponse:
+    _log.warning("IntegrityError on %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(
+        status_code=409,
+        content={"detail": "The request conflicts with existing data."},
+    )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def handle_database_error(request: Request, exc: SQLAlchemyError) -> JSONResponse:
+    _log.error("Database error on %s %s: %s", request.method, request.url.path, exc)
+    return JSONResponse(
+        status_code=400,
+        content={"detail": "The request could not be processed."},
+    )
 
 
 app.include_router(auth.router)
