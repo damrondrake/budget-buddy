@@ -16,7 +16,7 @@ export default function MonthPicker({ month, year, onChange }) {
 
   return (
     <div className="flex items-center gap-1">
-      <button onClick={prev} className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors">
+      <button onClick={prev} aria-label="Previous month" className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg hover:bg-gray-200 transition-colors">
         <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
@@ -24,7 +24,7 @@ export default function MonthPicker({ month, year, onChange }) {
       <span className="text-sm font-medium text-gray-700 w-36 text-center">
         {MONTH_NAMES[month - 1]} {year}
       </span>
-      <button onClick={next} className="p-1.5 rounded-lg hover:bg-gray-200 transition-colors">
+      <button onClick={next} aria-label="Next month" className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg hover:bg-gray-200 transition-colors">
         <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { updateUser, getCategories, createCategory, deleteCategory, invitePartner } from '../api/client'
 import { useUsers } from '../context/UsersContext'
 import { useAuth } from '../context/AuthContext'
+import IconButton from '../components/ui/IconButton'
 
 export default function Settings() {
   const { users, refreshUsers } = useUsers()
@@ -128,7 +129,7 @@ export default function Settings() {
           ))}
           <button
             type="submit"
-            className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+            className="inline-flex items-center justify-center min-h-[44px] px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
           >
             Save Names
           </button>
@@ -176,7 +177,7 @@ export default function Settings() {
           <button
             type="submit"
             disabled={inviting}
-            className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0 disabled:bg-emerald-400"
+            className="inline-flex items-center justify-center min-h-[44px] px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0 disabled:bg-emerald-400"
           >
             {inviting ? 'Sending...' : 'Send Invite'}
           </button>
@@ -217,7 +218,7 @@ export default function Settings() {
           </div>
           <button
             type="submit"
-            className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
+            className="inline-flex items-center justify-center min-h-[44px] px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
           >
             Add Category
           </button>
@@ -233,15 +234,16 @@ export default function Settings() {
               />
               <span className="flex-1 text-sm font-medium text-gray-900">{c.name}</span>
               <span className="text-xs text-gray-400">{c.color}</span>
-              <button
+              <IconButton
+                variant="danger"
                 onClick={() => handleDeleteCategory(c)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
                 title="Delete category"
+                aria-label={`Delete ${c.name} category`}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-              </button>
+              </IconButton>
             </div>
           ))}
         </div>

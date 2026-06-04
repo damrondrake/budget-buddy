@@ -140,4 +140,12 @@ body {
   html {
     @apply font-sans;
   }
+  /* Guarantee a 44px minimum touch target for tappable form controls on
+     mobile (WCAG 2.5.5 / Apple HIG). Excludes toggle/color/range inputs,
+     which are sized intentionally and would look broken at 44px tall. */
+  input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='range']),
+  select,
+  textarea {
+    min-height: 44px;
+  }
 }

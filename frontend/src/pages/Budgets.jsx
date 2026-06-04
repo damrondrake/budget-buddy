@@ -5,6 +5,7 @@ import {
   setBudgetPaid, createTransaction,
 } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
+import IconButton from '../components/ui/IconButton'
 import { BudgetsEmptyIcon } from '../components/EmptyState'
 import { formatMoney } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
@@ -250,7 +251,7 @@ export default function Budgets() {
           />
           <button
             type="submit"
-            className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
+            className="inline-flex items-center justify-center min-h-[44px] px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
           >
             Save
           </button>
@@ -277,7 +278,7 @@ export default function Budgets() {
           <p className="text-gray-500 text-sm mb-4">No budgets set for this month — use the form above to add one.</p>
           <button
             onClick={handleCopy}
-            className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+            className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
           >
             Copy Last Month's Budgets
           </button>
@@ -321,32 +322,27 @@ export default function Budgets() {
                       <p className="text-xs text-gray-400 truncate">{b.note}</p>
                     )}
                   </div>
-                  <button
-                    type="button"
+                  <IconButton
+                    variant="edit"
                     onClick={() => toggleEdit(b)}
-                    className={`p-1.5 rounded transition-colors ${
-                      isEditing
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50'
-                    }`}
+                    className={isEditing ? 'bg-emerald-100 text-emerald-700 hover:text-emerald-700' : undefined}
                     title={isEditing ? 'Close edit view' : 'Edit budget'}
                     aria-label={isEditing ? 'Close edit view' : 'Edit budget'}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
-                  </button>
-                  <button
-                    type="button"
+                  </IconButton>
+                  <IconButton
+                    variant="danger"
                     onClick={() => handleDeleteBudget(b)}
-                    className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                     title="Delete budget"
                     aria-label="Delete budget"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                  </button>
+                  </IconButton>
                 </div>
 
                 <div className="space-y-1 mb-3">
@@ -399,7 +395,7 @@ export default function Budgets() {
                     <button
                       type="button"
                       onClick={() => unmarkPaid(b)}
-                      className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                      className="inline-flex items-center min-h-[44px] text-xs text-gray-400 hover:text-gray-600 transition-colors"
                     >
                       Unmark as paid
                     </button>
@@ -407,7 +403,7 @@ export default function Budgets() {
                     <button
                       type="button"
                       onClick={() => openPayPrompt(b)}
-                      className="w-full px-3 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+                      className="w-full inline-flex items-center justify-center min-h-[44px] px-3 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
                     >
                       Mark as Paid
                     </button>
@@ -435,28 +431,26 @@ export default function Budgets() {
                             onChange={(e) => updateItemDraft(li.id, { amount: e.target.value })}
                             className="w-20 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
                           />
-                          <button
-                            type="button"
+                          <IconButton
+                            variant="success"
                             onClick={() => saveItem(b.id, li.id)}
-                            className="p-1 rounded text-emerald-600 hover:bg-emerald-50 transition-colors"
                             title="Save line item"
                             aria-label={`Save ${li.label}`}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
-                          </button>
-                          <button
-                            type="button"
+                          </IconButton>
+                          <IconButton
+                            variant="danger"
                             onClick={() => handleDeleteItem(b.id, li.id)}
-                            className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                             title="Delete line item"
                             aria-label={`Delete ${li.label}`}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
-                          </button>
+                          </IconButton>
                         </div>
                       ) : (
                         <div key={li.id} className="flex items-center gap-2 py-1.5">
@@ -464,17 +458,16 @@ export default function Budgets() {
                           <span className="text-sm font-medium text-gray-900">
                             {formatMoney(li.amount)}
                           </span>
-                          <button
-                            type="button"
+                          <IconButton
+                            variant="danger"
                             onClick={() => handleDeleteItem(b.id, li.id)}
-                            className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                             title="Delete line item"
                             aria-label={`Delete ${li.label}`}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
-                          </button>
+                          </IconButton>
                         </div>
                       ))}
                     </div>
@@ -500,7 +493,7 @@ export default function Budgets() {
                           <button
                             type="button"
                             onClick={() => addItemFromEdit(b.id)}
-                            className="px-2 py-1 bg-emerald-600 text-white text-xs font-medium rounded hover:bg-emerald-700 transition-colors shrink-0"
+                            className="inline-flex items-center justify-center min-h-[44px] px-3 py-1 bg-emerald-600 text-white text-xs font-medium rounded hover:bg-emerald-700 transition-colors shrink-0"
                           >
                             Add
                           </button>
@@ -567,7 +560,7 @@ export default function Budgets() {
               <button
                 type="button"
                 onClick={() => setPayingBudget(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 Cancel
               </button>
@@ -575,7 +568,7 @@ export default function Budgets() {
                 type="button"
                 onClick={confirmPaid}
                 disabled={!payByUserId}
-                className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Confirm Paid
               </button>

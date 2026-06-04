@@ -102,7 +102,7 @@ export default function Dashboard() {
             ) : (
               <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
                 <p className="text-gray-500 text-sm mb-2">No budgets set for this month.</p>
-                <Link to="/budgets" className="text-sm text-emerald-600 hover:text-emerald-800 font-medium">
+                <Link to="/budgets" className="inline-flex items-center min-h-[44px] text-sm text-emerald-600 hover:text-emerald-800 font-medium">
                   Set up budgets
                 </Link>
               </div>
@@ -147,7 +147,7 @@ export default function Dashboard() {
             <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between p-5 pb-3">
                 <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
-                <Link to="/transactions" className="text-sm text-emerald-600 hover:text-emerald-800 font-medium">
+                <Link to="/transactions" className="inline-flex items-center min-h-[44px] text-sm text-emerald-600 hover:text-emerald-800 font-medium">
                   View All
                 </Link>
               </div>

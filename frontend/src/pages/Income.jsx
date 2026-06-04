@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getIncome, createIncome, updateIncome, deleteIncome } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
+import IconButton from '../components/ui/IconButton'
 import EmptyState, { IncomeEmptyIcon } from '../components/EmptyState'
 import { formatMoney } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
@@ -89,8 +90,11 @@ export default function Income() {
         <MonthPicker month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y) }} />
       </div>
 
-      {/* Summary cards */}
-      <div className={`grid grid-cols-1 sm:grid-cols-${1 + perUser.length} gap-4 mb-6`}>
+      {/* Summary cards — static column classes so Tailwind keeps them in the
+          build (dynamic `grid-cols-${n}` strings get purged and never apply). */}
+      <div className={`grid grid-cols-1 ${
+        { 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4' }[1 + perUser.length] || 'sm:grid-cols-3'
+      } gap-4 mb-6`}>
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <p className="text-sm text-gray-500 mb-1">Total Income</p>
           <p className="text-2xl font-bold text-emerald-600">{formatMoney(total)}</p>
@@ -137,7 +141,7 @@ export default function Income() {
           </select>
           <button
             type="submit"
-            className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
+            className="inline-flex items-center justify-center min-h-[44px] px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
           >
             {editingId ? 'Save' : 'Add'}
           </button>
@@ -145,7 +149,7 @@ export default function Income() {
             <button
               type="button"
               onClick={resetForm}
-              className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors shrink-0"
+              className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors shrink-0"
             >
               Cancel
             </button>
@@ -170,25 +174,17 @@ export default function Income() {
               <span className="text-sm font-semibold text-emerald-600 shrink-0">
                 {formatMoney(i.amount)}
               </span>
-              <div className="flex gap-1 shrink-0">
-                <button
-                  onClick={() => startEdit(i)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
-                  title="Edit"
-                >
+              <div className="flex shrink-0">
+                <IconButton variant="edit" onClick={() => startEdit(i)} title="Edit" aria-label="Edit income">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                </button>
-                <button
-                  onClick={() => handleDelete(i.id)}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                  title="Delete"
-                >
+                </IconButton>
+                <IconButton variant="danger" onClick={() => handleDelete(i.id)} title="Delete" aria-label="Delete income">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
-                </button>
+                </IconButton>
               </div>
             </div>
           ))}

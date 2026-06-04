@@ -5,6 +5,7 @@ import {
   addSavingsTransaction, getSavingsTransactions,
 } from '../api/client'
 import EmptyState from '../components/EmptyState'
+import IconButton from '../components/ui/IconButton'
 import { formatMoney, formatDate } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
 
@@ -180,7 +181,7 @@ export default function Savings() {
           </div>
           <button
             type="submit"
-            className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
+            className="inline-flex items-center justify-center min-h-[44px] px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0"
           >
             Create Goal
           </button>
@@ -217,17 +218,16 @@ export default function Savings() {
                       {formatMoney(goal.total_saved)} saved of {formatMoney(goal.total_target)} target
                     </p>
                   </div>
-                  <button
-                    type="button"
+                  <IconButton
+                    variant="danger"
                     onClick={() => handleDeleteGoal(goal)}
-                    className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                     title="Delete goal"
                     aria-label="Delete goal"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                  </button>
+                  </IconButton>
                 </div>
 
                 {/* Overall progress */}
@@ -251,17 +251,17 @@ export default function Savings() {
                             <span className="text-gray-500 text-xs">
                               {formatMoney(a.saved)} / {formatMoney(a.target_amount)}
                             </span>
-                            <button
-                              type="button"
+                            <IconButton
+                              variant="danger"
                               onClick={() => handleDeleteAllocation(goal.id, a.id)}
-                              className="p-0.5 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                              className="text-gray-300"
                               title="Delete allocation"
                               aria-label={`Delete ${a.label}`}
                             >
                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                               </svg>
-                            </button>
+                            </IconButton>
                           </div>
                         </div>
                         <div className="w-full bg-gray-100 rounded-full h-1.5">
@@ -298,7 +298,7 @@ export default function Savings() {
                   <button
                     type="button"
                     onClick={() => handleAddAllocation(goal.id)}
-                    className="px-2.5 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded hover:bg-gray-200 transition-colors shrink-0"
+                    className="inline-flex items-center justify-center min-h-[44px] px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded hover:bg-gray-200 transition-colors shrink-0"
                   >
                     Add
                   </button>
@@ -309,14 +309,14 @@ export default function Savings() {
                   <button
                     type="button"
                     onClick={() => openTxnModal(goal)}
-                    className="flex-1 px-3 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+                    className="flex-1 inline-flex items-center justify-center min-h-[44px] px-3 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
                   >
                     Deposit / Withdraw
                   </button>
                   <button
                     type="button"
                     onClick={() => toggleLog(goal.id)}
-                    className="px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                    className="inline-flex items-center justify-center min-h-[44px] px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     {log ? 'Hide Log' : 'View Log'}
                   </button>
@@ -385,7 +385,7 @@ export default function Savings() {
                     key={type}
                     type="button"
                     onClick={() => setTxnForm((f) => ({ ...f, type }))}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
+                    className={`inline-flex items-center justify-center min-h-[44px] px-3 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
                       txnForm.type === type
                         ? type === 'deposit'
                           ? 'bg-emerald-600 text-white'
@@ -458,13 +458,13 @@ export default function Savings() {
               <button
                 type="button"
                 onClick={() => { setTxnGoal(null); setTxnForm(null) }}
-                className="px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+                className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
               >
                 Confirm
               </button>

@@ -4,6 +4,7 @@ import {
   getCategories, getRecurring, createRecurring, deleteRecurring, applyRecurring,
 } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
+import IconButton from '../components/ui/IconButton'
 import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
 import { formatMoney, formatDate } from '../utils/format'
 import { downloadCsvRows } from '../utils/exportCsv'
@@ -164,7 +165,7 @@ export default function Transactions() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <MonthPicker month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y) }} />
           <button
             onClick={() => {
@@ -191,13 +192,13 @@ export default function Transactions() {
               downloadCsvRows(`transactions-${monthLabel}-${year}.csv`, rows)
             }}
             disabled={filtered.length === 0}
-            className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Export CSV
           </button>
           <button
             onClick={openAdd}
-            className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+            className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
           >
             + Add
           </button>
@@ -228,13 +229,13 @@ export default function Transactions() {
               <button
                 onClick={handleApplyRecurring}
                 disabled={applying || recurring.length === 0}
-                className="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center justify-center min-h-[44px] px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {applying ? 'Applying...' : `Apply to ${new Date(year, month - 1).toLocaleString('default', { month: 'short' })} ${year}`}
               </button>
               <button
                 onClick={() => { setRecurringForm(emptyRecurring(users)); setShowRecurringForm(true) }}
-                className="px-3 py-1.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center justify-center min-h-[44px] px-3 py-1.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
               >
                 + Add Recurring
               </button>
@@ -268,15 +269,11 @@ export default function Transactions() {
                           Applied
                         </span>
                       )}
-                      <button
-                        onClick={() => handleDeleteRecurring(r.id)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shrink-0"
-                        title="Delete"
-                      >
+                      <IconButton variant="danger" onClick={() => handleDeleteRecurring(r.id)} title="Delete" aria-label="Delete recurring transaction">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                      </button>
+                      </IconButton>
                     </div>
                   )
                 })}
@@ -366,14 +363,14 @@ export default function Transactions() {
                   <div className="flex gap-2">
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+                      className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
                     >
                       Add Recurring
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowRecurringForm(false)}
-                      className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                      className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       Cancel
                     </button>
@@ -480,14 +477,14 @@ export default function Transactions() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+                  className="flex-1 inline-flex items-center justify-center min-h-[44px] px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
                 >
                   {editingId ? 'Save Changes' : 'Add Transaction'}
                 </button>
                 <button
                   type="button"
                   onClick={closeForm}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                  className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
@@ -550,25 +547,17 @@ export default function Transactions() {
                 <span className="text-sm font-semibold text-gray-900 shrink-0">
                   {formatMoney(t.amount)}
                 </span>
-                <div className="flex gap-1 shrink-0">
-                  <button
-                    onClick={() => openEdit(t)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
-                    title="Edit"
-                  >
+                <div className="flex shrink-0">
+                  <IconButton variant="edit" onClick={() => openEdit(t)} title="Edit" aria-label="Edit transaction">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
-                  </button>
-                  <button
-                    onClick={() => handleDelete(t.id)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                    title="Delete"
-                  >
+                  </IconButton>
+                  <IconButton variant="danger" onClick={() => handleDelete(t.id)} title="Delete" aria-label="Delete transaction">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                  </button>
+                  </IconButton>
                 </div>
               </div>
             )
