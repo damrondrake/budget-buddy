@@ -31,6 +31,9 @@ SENTRY_DSN = os.getenv("SENTRY_DSN")
 if SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
+        # Attach request headers and user IP to events for richer context.
+        # See https://docs.sentry.io/platforms/python/data-management/data-collected/
+        send_default_pii=True,
         traces_sample_rate=0.1,
         environment=os.getenv("ENVIRONMENT", "production"),
         integrations=[
@@ -155,3 +158,15 @@ app.include_router(savings.router)
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy", "app": "BudgetBuddy"}
+
+
+@app.get("/api/sentry-debug")
+async def trigger_error():
+    """Deliberately raise to verify Sentry reporting end-to-end.
+
+    Hitting this returns a 500 and, when SENTRY_DSN is configured, sends an
+    error event (and a linked transaction) to Sentry. Safe to remove once
+    you've confirmed events are arriving.
+    """
+    division_by_zero = 1 / 0
+    return {"result": division_by_zero}
