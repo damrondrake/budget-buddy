@@ -22,6 +22,8 @@ def _enrich(r: RecurringTransaction) -> RecurringOut:
         is_split=r.is_split,
         day_of_month=r.day_of_month,
         note=r.note,
+        frequency=r.frequency,
+        month_of_year=r.month_of_year,
         category_name=r.category.name if r.category else None,
         paid_by_name=r.paid_by_user.name if r.paid_by_user else None,
     )
@@ -67,6 +69,14 @@ def delete_recurring(
     ).first()
     if not r:
         raise HTTPException(404, "Recurring transaction not found")
+    # Keep the transactions this rule created — just unlink them so the rule can
+    # be removed without a FK violation and without losing history.
+    db.query(Transaction).filter(
+        Transaction.recurring_id == recurring_id, Transaction.account_id == account.id
+    ).update(
+        {Transaction.recurring_id: None, Transaction.is_recurring: False},
+        synchronize_session=False,
+    )
     db.delete(r)
     db.commit()
 
@@ -79,36 +89,22 @@ def apply_recurring(
     account: Account = Depends(get_current_account),
 ):
     from sqlalchemy import extract
+    from datetime import timedelta
     import calendar
 
     recurring = db.query(RecurringTransaction).filter(
         RecurringTransaction.account_id == account.id
     ).all()
+    last_day = calendar.monthrange(year, month)[1]
     created = []
 
-    for r in recurring:
-        already_exists = (
-            db.query(Transaction)
-            .filter(
-                Transaction.recurring_id == r.id,
-                Transaction.account_id == account.id,
-                extract("month", Transaction.date) == month,
-                extract("year", Transaction.date) == year,
-            )
-            .first()
-        )
-        if already_exists:
-            continue
-
-        last_day = calendar.monthrange(year, month)[1]
-        day = min(r.day_of_month, last_day)
-
+    def _make(r: RecurringTransaction, when: date) -> None:
         t = Transaction(
             amount=r.amount,
             category_id=r.category_id,
             paid_by=r.paid_by,
             is_split=r.is_split,
-            date=date(year, month, day),
+            date=when,
             note=r.note,
             is_recurring=True,
             recurring_id=r.id,
@@ -116,6 +112,58 @@ def apply_recurring(
         )
         db.add(t)
         created.append(t)
+
+    def _exists_on(r: RecurringTransaction, when: date) -> bool:
+        return (
+            db.query(Transaction)
+            .filter(
+                Transaction.recurring_id == r.id,
+                Transaction.account_id == account.id,
+                Transaction.date == when,
+            )
+            .first()
+            is not None
+        )
+
+    for r in recurring:
+        if r.frequency == "weekly":
+            # Every 7 days within the requested month, anchored on day_of_month.
+            when = date(year, month, min(r.day_of_month, last_day))
+            while when.year == year and when.month == month:
+                if not _exists_on(r, when):
+                    _make(r, when)
+                when = when + timedelta(days=7)
+        elif r.frequency == "yearly":
+            # Only fires in its anchor month, once per year.
+            anchor_month = r.month_of_year or month
+            if anchor_month != month:
+                continue
+            already_this_year = (
+                db.query(Transaction)
+                .filter(
+                    Transaction.recurring_id == r.id,
+                    Transaction.account_id == account.id,
+                    extract("year", Transaction.date) == year,
+                )
+                .first()
+            )
+            if already_this_year:
+                continue
+            _make(r, date(year, month, min(r.day_of_month, last_day)))
+        else:  # monthly — once per requested month
+            already_this_month = (
+                db.query(Transaction)
+                .filter(
+                    Transaction.recurring_id == r.id,
+                    Transaction.account_id == account.id,
+                    extract("month", Transaction.date) == month,
+                    extract("year", Transaction.date) == year,
+                )
+                .first()
+            )
+            if already_this_month:
+                continue
+            _make(r, date(year, month, min(r.day_of_month, last_day)))
 
     db.commit()
     for t in created:

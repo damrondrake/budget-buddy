@@ -12,6 +12,8 @@ import { formatMoney, formatDate } from '../utils/format'
 import { downloadCsvRows } from '../utils/exportCsv'
 import { useUsers } from '../context/UsersContext'
 
+const FREQ_LABEL = { weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' }
+
 function emptyForm(users) {
   return {
     amount: '',
@@ -20,6 +22,8 @@ function emptyForm(users) {
     paid_by: users[0]?.id ?? '',
     is_split: false,
     note: '',
+    make_recurring: false,
+    recurring_frequency: 'monthly',
   }
 }
 
@@ -84,6 +88,7 @@ export default function Transactions() {
   }
 
   function openEdit(t) {
+    const rule = t.recurring_id ? recurring.find((r) => r.id === t.recurring_id) : null
     setEditingId(t.id)
     setForm({
       amount: t.amount,
@@ -92,6 +97,8 @@ export default function Transactions() {
       paid_by: t.paid_by,
       is_split: t.is_split,
       note: t.note || '',
+      make_recurring: !!t.recurring_id,
+      recurring_frequency: rule?.frequency || 'monthly',
     })
     setShowForm(true)
   }
@@ -108,6 +115,8 @@ export default function Transactions() {
       amount: parseFloat(form.amount),
       category_id: parseInt(form.category_id),
       paid_by: parseInt(form.paid_by),
+      make_recurring: form.make_recurring,
+      recurring_frequency: form.make_recurring ? form.recurring_frequency : null,
     }
     if (editingId) {
       await updateTransaction(editingId, payload)
@@ -116,11 +125,22 @@ export default function Transactions() {
     }
     closeForm()
     fetchTransactions()
+    // The save may have created/removed a recurring rule.
+    fetchRecurring()
   }
 
   function handleDelete(id) {
     if (!window.confirm('Are you sure you want to delete this transaction?')) return
     deleteTransaction(id).then(() => fetchTransactions())
+  }
+
+  function handleRemoveRecurringFromTxn(t) {
+    if (!t.recurring_id) return
+    if (!window.confirm('Remove the recurring rule for this transaction? The transaction itself will be kept.')) return
+    deleteRecurring(t.recurring_id).then(() => {
+      fetchTransactions()
+      fetchRecurring()
+    })
   }
 
   async function handleRecurringSubmit(e) {
@@ -158,6 +178,7 @@ export default function Transactions() {
   }
 
   const catMap = Object.fromEntries(categories.map((c) => [c.id, c]))
+  const recurringById = Object.fromEntries(recurring.map((r) => [r.id, r]))
   const selectedCat = form.category_id ? catMap[parseInt(form.category_id)] : null
   const filtered = filterCat
     ? transactions.filter((t) => t.category_id === parseInt(filterCat))
@@ -265,7 +286,12 @@ export default function Transactions() {
                         style={{ backgroundColor: cat?.color || '#6B7280' }}
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{r.note}</p>
+                        <p className="text-sm font-medium text-gray-900 truncate flex items-center gap-2">
+                          <span className="truncate">{r.note}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-medium shrink-0">
+                            {FREQ_LABEL[r.frequency] || r.frequency}
+                          </span>
+                        </p>
                         <p className="text-xs text-gray-400">
                           {r.category_name} &middot; Day {r.day_of_month} &middot; {r.paid_by_name}{r.is_split ? ' (split)' : ''}
                         </p>
@@ -483,6 +509,37 @@ export default function Transactions() {
                   placeholder="What was this for?"
                 />
               </div>
+
+              {/* Make this recurring */}
+              <div className="border-t border-gray-100 pt-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.make_recurring}
+                    onChange={(e) => setForm({ ...form, make_recurring: e.target.checked })}
+                    className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Make this recurring</span>
+                </label>
+                {form.make_recurring && (
+                  <div className="mt-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+                    <select
+                      value={form.recurring_frequency}
+                      onChange={(e) => setForm({ ...form, recurring_frequency: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
+                    >
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1">
+                      A recurring rule is created from this transaction's category, amount, and details.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="submit"
@@ -543,12 +600,12 @@ export default function Transactions() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {t.note || t.category_name}
-                    {t.is_recurring && (
+                    {t.recurring_id && (
                       <span className="ml-2 inline-flex items-center text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-normal">
                         <svg className="w-3 h-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        Recurring
+                        {FREQ_LABEL[recurringById[t.recurring_id]?.frequency] || 'Recurring'}
                       </span>
                     )}
                   </p>
@@ -561,6 +618,18 @@ export default function Transactions() {
                   {formatMoney(t.amount)}
                 </span>
                 <div className="flex shrink-0">
+                  {t.recurring_id && (
+                    <IconButton
+                      variant="neutral"
+                      onClick={() => handleRemoveRecurringFromTxn(t)}
+                      title="Remove recurring"
+                      aria-label="Remove recurring rule (keeps this transaction)"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.172 9.172a4 4 0 015.656 5.656M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9M3 3l18 18" />
+                      </svg>
+                    </IconButton>
+                  )}
                   <IconButton variant="edit" onClick={() => openEdit(t)} title="Edit" aria-label="Edit transaction">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

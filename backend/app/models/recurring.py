@@ -14,6 +14,12 @@ class RecurringTransaction(Base):
     is_split: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     day_of_month: Mapped[int] = mapped_column(Integer, nullable=False)
     note: Mapped[str] = mapped_column(String(255), nullable=False)
+    # 'weekly' | 'monthly' | 'yearly'.
+    frequency: Mapped[str] = mapped_column(
+        String(10), nullable=False, default="monthly", server_default="monthly"
+    )
+    # Anchor month (1-12) for yearly rules so they only fire in the right month.
+    month_of_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
 
     category: Mapped["Category"] = relationship()

@@ -1,7 +1,11 @@
 from datetime import date as date_type
+from typing import Literal
+
 from pydantic import BaseModel
 
 from app.schemas.common import Amount, BoundedDate, NoteStr
+
+Frequency = Literal["weekly", "monthly", "yearly"]
 
 
 class TransactionCreate(BaseModel):
@@ -11,6 +15,9 @@ class TransactionCreate(BaseModel):
     is_split: bool = False
     date: BoundedDate
     note: NoteStr | None = None
+    # When true, also create a recurring rule from this transaction.
+    make_recurring: bool = False
+    recurring_frequency: Frequency | None = None
 
 
 class TransactionUpdate(BaseModel):
@@ -20,6 +27,10 @@ class TransactionUpdate(BaseModel):
     is_split: bool | None = None
     date: BoundedDate | None = None
     note: NoteStr | None = None
+    # When set, toggles the recurring rule for this transaction: true creates a
+    # rule (if not already recurring); false removes it (keeping the transaction).
+    make_recurring: bool | None = None
+    recurring_frequency: Frequency | None = None
 
 
 class TransactionOut(BaseModel):

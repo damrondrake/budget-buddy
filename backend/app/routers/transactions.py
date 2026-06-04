@@ -3,11 +3,49 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.auth import get_current_account
-from app.models import Transaction, Category, User
+from app.models import Transaction, Category, User, RecurringTransaction
 from app.models.account import Account
 from app.schemas.transaction import TransactionCreate, TransactionUpdate, TransactionOut
 
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
+
+
+def _attach_recurring_rule(db: Session, t: Transaction, frequency: str, account_id: int) -> None:
+    """Create a recurring rule mirroring this transaction and link them.
+
+    The transaction's day drives day_of_month, and its month is the yearly
+    anchor. The rule reuses the same category, amount, paid_by, is_split, note.
+    """
+    rule = RecurringTransaction(
+        amount=t.amount,
+        category_id=t.category_id,
+        paid_by=t.paid_by,
+        is_split=t.is_split,
+        day_of_month=t.date.day,
+        note=t.note or "",
+        frequency=frequency,
+        month_of_year=t.date.month,
+        account_id=account_id,
+    )
+    db.add(rule)
+    db.flush()
+    t.recurring_id = rule.id
+    t.is_recurring = True
+
+
+def _detach_recurring_rule(db: Session, rule_id: int, account_id: int) -> None:
+    """Delete a recurring rule but keep its transactions (just unlink them)."""
+    db.query(Transaction).filter(
+        Transaction.recurring_id == rule_id, Transaction.account_id == account_id
+    ).update(
+        {Transaction.recurring_id: None, Transaction.is_recurring: False},
+        synchronize_session=False,
+    )
+    rule = db.query(RecurringTransaction).filter(
+        RecurringTransaction.id == rule_id, RecurringTransaction.account_id == account_id
+    ).first()
+    if rule:
+        db.delete(rule)
 
 
 def _enrich(t: Transaction) -> TransactionOut:
@@ -53,8 +91,12 @@ def create_transaction(
         raise HTTPException(404, "Category not found")
     if not db.query(User).filter(User.id == data.paid_by, User.account_id == account.id).first():
         raise HTTPException(404, "User not found")
-    t = Transaction(**data.model_dump(), account_id=account.id)
+    payload = data.model_dump(exclude={"make_recurring", "recurring_frequency"})
+    t = Transaction(**payload, account_id=account.id)
     db.add(t)
+    db.flush()
+    if data.make_recurring:
+        _attach_recurring_rule(db, t, data.recurring_frequency or "monthly", account.id)
     db.commit()
     db.refresh(t)
     return _enrich(t)
@@ -70,7 +112,7 @@ def update_transaction(
     t = db.query(Transaction).filter(Transaction.id == transaction_id, Transaction.account_id == account.id).first()
     if not t:
         raise HTTPException(404, "Transaction not found")
-    updates = data.model_dump(exclude_unset=True)
+    updates = data.model_dump(exclude_unset=True, exclude={"make_recurring", "recurring_frequency"})
     if "category_id" in updates:
         if not db.query(Category).filter(Category.id == updates["category_id"], Category.account_id == account.id).first():
             raise HTTPException(404, "Category not found")
@@ -79,6 +121,15 @@ def update_transaction(
             raise HTTPException(404, "User not found")
     for k, v in updates.items():
         setattr(t, k, v)
+
+    # Recurring toggle: create a rule when turned on (and not already recurring),
+    # or remove the rule when turned off (keeping this and any sibling txns).
+    if data.make_recurring is not None:
+        if data.make_recurring and not t.recurring_id:
+            _attach_recurring_rule(db, t, data.recurring_frequency or "monthly", account.id)
+        elif not data.make_recurring and t.recurring_id:
+            _detach_recurring_rule(db, t.recurring_id, account.id)
+
     db.commit()
     db.refresh(t)
     return _enrich(t)
