@@ -1,9 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { updateUser, getCategories, createCategory, deleteCategory, invitePartner, deleteAccount } from '../api/client'
+import {
+  updateUser, getCategories, createCategory, deleteCategory, invitePartner, deleteAccount,
+  getStartingBalance, setStartingBalance, deleteStartingBalance,
+} from '../api/client'
 import { useUsers } from '../context/UsersContext'
 import { useAuth } from '../context/AuthContext'
 import IconButton from '../components/ui/IconButton'
+import { formatMoney } from '../utils/format'
+
+function todayStr() {
+  const d = new Date()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
 
 export default function Settings() {
   const { users, refreshUsers } = useUsers()
@@ -23,9 +34,16 @@ export default function Settings() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
+  // Starting balance
+  const [sbAmount, setSbAmount] = useState('')
+  const [sbDate, setSbDate] = useState(todayStr())
+  const [sbExisting, setSbExisting] = useState(null)
+  const [sbMsg, setSbMsg] = useState(null)
+  const [savingSb, setSavingSb] = useState(false)
 
   useEffect(() => {
     fetchCategories()
+    fetchStartingBalance()
   }, [])
 
   useEffect(() => {
@@ -36,6 +54,53 @@ export default function Settings() {
 
   function fetchCategories() {
     getCategories().then((res) => setCategories(res.data))
+  }
+
+  function fetchStartingBalance() {
+    getStartingBalance().then((res) => {
+      const sb = res.data
+      setSbExisting(sb)
+      if (sb) {
+        setSbAmount(String(sb.amount))
+        setSbDate(sb.date)
+      }
+    }).catch(() => {})
+  }
+
+  async function handleSaveStartingBalance(e) {
+    e.preventDefault()
+    setSbMsg(null)
+    const amount = parseFloat(sbAmount)
+    if (Number.isNaN(amount) || amount <= 0) {
+      setSbMsg({ type: 'error', text: 'Enter an amount greater than 0.' })
+      return
+    }
+    setSavingSb(true)
+    try {
+      const res = await setStartingBalance({ amount, date: sbDate })
+      setSbExisting(res.data)
+      setSbMsg({ type: 'success', text: 'Starting balance saved.' })
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to save starting balance.'
+      setSbMsg({ type: 'error', text: detail })
+    } finally {
+      setSavingSb(false)
+    }
+  }
+
+  async function handleRemoveStartingBalance() {
+    if (!window.confirm('Remove your starting balance? It will no longer count toward your monthly and cumulative totals.')) return
+    setSbMsg(null)
+    try {
+      await deleteStartingBalance()
+      setSbExisting(null)
+      setSbAmount('')
+      setSbDate(todayStr())
+      setSbMsg({ type: 'success', text: 'Starting balance removed.' })
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to remove starting balance.'
+      setSbMsg({ type: 'error', text: detail })
+    }
   }
 
   async function handleSaveUsers(e) {
@@ -162,6 +227,69 @@ export default function Settings() {
             Save Names
           </button>
         </form>
+      </section>
+
+      {/* Starting Balance */}
+      <section className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-lg font-semibold text-gray-900">Starting Balance</h2>
+          {sbExisting && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              Set · {formatMoney(sbExisting.amount)}
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          Enter the amount you already had in your account on a specific date. This will be added as a
+          one-time starting balance and will flow into your monthly and cumulative totals automatically.
+        </p>
+        {sbMsg && (
+          <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${
+            sbMsg.type === 'success'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-red-50 text-red-700 border border-red-200'
+          }`}>
+            {sbMsg.text}
+          </div>
+        )}
+        <form onSubmit={handleSaveStartingBalance} className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            required
+            value={sbAmount}
+            onChange={(e) => setSbAmount(e.target.value)}
+            placeholder="Amount"
+            className="w-full sm:w-40 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
+          />
+          <input
+            type="date"
+            required
+            value={sbDate}
+            onChange={(e) => setSbDate(e.target.value)}
+            className="w-full sm:w-44 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
+          />
+          <button
+            type="submit"
+            disabled={savingSb}
+            className="inline-flex items-center justify-center min-h-[44px] px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shrink-0 disabled:bg-emerald-400"
+          >
+            {savingSb ? 'Saving...' : sbExisting ? 'Update' : 'Save'}
+          </button>
+        </form>
+        {sbExisting && (
+          <button
+            type="button"
+            onClick={handleRemoveStartingBalance}
+            className="mt-3 inline-flex items-center min-h-[44px] text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+          >
+            Remove Starting Balance
+          </button>
+        )}
       </section>
 
       {/* Invite Partner */}

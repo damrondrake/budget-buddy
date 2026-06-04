@@ -74,6 +74,11 @@ export const createIncome = (data) => api.post('/income', data)
 export const updateIncome = (id, data) => api.put(`/income/${id}`, data)
 export const deleteIncome = (id) => api.delete(`/income/${id}`)
 
+// Starting balance (a special, locked income entry managed from Settings)
+export const getStartingBalance = () => api.get('/account/starting-balance')
+export const setStartingBalance = (data) => api.post('/account/starting-balance', data)
+export const deleteStartingBalance = () => api.delete('/account/starting-balance')
+
 // Recurring
 export const getRecurring = () => api.get('/recurring')
 export const createRecurring = (data) => api.post('/recurring', data)

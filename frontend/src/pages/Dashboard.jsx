@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { getSummary, getTransactions, getCumulative } from '../api/client'
+import { getSummary, getTransactions, getCumulative, getStartingBalance } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
 import PageError from '../components/PageError'
 import { DashboardSkeleton } from '../components/Skeletons'
 import { formatMoney, formatDateShort } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
+
+// Permanently dismiss the "add a starting balance" first-run banner.
+const HIDE_BANNER_KEY = 'budgetbuddy_hide_starting_balance_banner'
 
 export default function Dashboard() {
   const now = new Date()
@@ -18,6 +21,10 @@ export default function Dashboard() {
   const [cumulative, setCumulative] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [startingBalance, setStartingBalance] = useState(undefined)
+  const [bannerDismissed, setBannerDismissed] = useState(
+    () => !!localStorage.getItem(HIDE_BANNER_KEY)
+  )
   const { users } = useUsers()
 
   function load() {
@@ -41,6 +48,25 @@ export default function Dashboard() {
     getCumulative().then((res) => setCumulative(res.data)).catch(() => {})
   }, [])
 
+  useEffect(() => {
+    if (bannerDismissed) return
+    getStartingBalance().then((res) => setStartingBalance(res.data)).catch(() => {})
+  }, [bannerDismissed])
+
+  function dismissBanner() {
+    localStorage.setItem(HIDE_BANNER_KEY, '1')
+    setBannerDismissed(true)
+  }
+
+  // First-run nudge: only when no starting balance is set and there's been no
+  // spending yet (a brand-new account). Cumulative spending > 0 means they've
+  // started using the app, so the banner stays hidden.
+  const showStartingBalanceBanner =
+    !bannerDismissed &&
+    startingBalance === null &&
+    cumulative !== null &&
+    cumulative.total_spending === 0
+
   function getBalanceText(balance) {
     if (!balance || users.length < 2) return { text: '—', color: 'text-gray-400' }
     const u1 = users[0]
@@ -56,6 +82,30 @@ export default function Dashboard() {
 
   return (
     <div>
+      {/* First-run starting-balance nudge */}
+      {showStartingBalanceBanner && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <svg className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="flex-1 text-sm text-emerald-800">
+            Already have money in your account? Add a starting balance in{' '}
+            <Link to="/settings" className="font-semibold underline hover:text-emerald-900">Settings</Link>{' '}
+            to get an accurate picture of your finances.
+          </p>
+          <button
+            type="button"
+            onClick={dismissBanner}
+            aria-label="Dismiss"
+            className="shrink-0 text-emerald-600 hover:text-emerald-800 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>

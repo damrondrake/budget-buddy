@@ -19,6 +19,7 @@ def _enrich(i: Income) -> IncomeOut:
         month=i.month,
         year=i.year,
         user_name=i.user.name if i.user else None,
+        type=i.type,
     )
 
 
@@ -60,6 +61,8 @@ def update_income(
     i = db.query(Income).filter(Income.id == income_id, Income.account_id == account.id).first()
     if not i:
         raise HTTPException(404, "Income entry not found")
+    if i.type == "starting_balance":
+        raise HTTPException(400, "The starting balance can only be changed from Settings.")
     if not db.query(User).filter(User.id == data.user_id, User.account_id == account.id).first():
         raise HTTPException(404, "User not found")
     i.user_id = data.user_id
@@ -79,5 +82,7 @@ def delete_income(
     i = db.query(Income).filter(Income.id == income_id, Income.account_id == account.id).first()
     if not i:
         raise HTTPException(404, "Income entry not found")
+    if i.type == "starting_balance":
+        raise HTTPException(400, "The starting balance can only be removed from Settings.")
     db.delete(i)
     db.commit()

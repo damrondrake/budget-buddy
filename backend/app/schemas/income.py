@@ -25,5 +25,7 @@ class IncomeOut(BaseModel):
     month: int
     year: int
     user_name: str | None = None
+    # 'income' or 'starting_balance'; lets the UI render the locked SB entry.
+    type: str = "income"
 
     model_config = {"from_attributes": True}

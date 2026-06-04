@@ -14,5 +14,9 @@ class Income(Base):
     month: Mapped[int] = mapped_column(Integer, nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
+    # 'income' (normal) or 'starting_balance' (one-time, locked opening balance).
+    type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="income", server_default="income"
+    )
 
     user: Mapped["User"] = relationship(back_populates="incomes")
