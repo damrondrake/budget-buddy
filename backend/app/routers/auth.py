@@ -1,10 +1,11 @@
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.security import limiter, log_security_event
 from app.auth import (
     hash_password,
     verify_password,
@@ -69,9 +70,11 @@ def _member_count(db: Session, account_id: int) -> int:
 
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
-def register(data: RegisterRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, data: RegisterRequest, db: Session = Depends(get_db)):
     existing = db.query(Account).filter(Account.email == data.email).first()
     if existing:
+        log_security_event("register_duplicate_email", request, email=data.email)
         raise HTTPException(409, "An account with this email already exists")
 
     account = Account(
@@ -91,13 +94,16 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
         db.add(Category(account_id=account.id, **cat))
 
     db.commit()
+    log_security_event("register_success", request, email=data.email, account_id=account.id)
     return TokenResponse(access_token=create_access_token(account.id))
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(data: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
     account = db.query(Account).filter(Account.email == data.email).first()
     if not account or not verify_password(data.password, account.hashed_password):
+        log_security_event("login_failed", request, email=data.email)
         raise HTTPException(401, "Invalid email or password")
     return TokenResponse(access_token=create_access_token(account.id))
 
@@ -181,9 +187,12 @@ def delete_account(
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
-def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def forgot_password(request: Request, data: ForgotPasswordRequest, db: Session = Depends(get_db)):
     account = db.query(Account).filter(Account.email == data.email).first()
     generic = "If an account exists for that email, a reset link has been sent."
+
+    log_security_event("password_reset_requested", request, email=data.email)
 
     # Don't reveal whether the email is registered.
     if not account:
@@ -202,19 +211,22 @@ def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/reset-password", response_model=MessageResponse)
-def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def reset_password(request: Request, data: ResetPasswordRequest, db: Session = Depends(get_db)):
     account = db.query(Account).filter(Account.reset_token == data.token).first()
     if (
         not account
         or not account.reset_token_expires
         or account.reset_token_expires < _utcnow()
     ):
+        log_security_event("password_reset_invalid_token", request)
         raise HTTPException(400, "This reset link is invalid or has expired.")
 
     account.hashed_password = hash_password(data.password)
     account.reset_token = None
     account.reset_token_expires = None
     db.commit()
+    log_security_event("password_reset_success", request, email=account.email, account_id=account.id)
     return MessageResponse(message="Your password has been reset. You can now sign in.")
 
 
@@ -284,11 +296,13 @@ def _add_member(db: Session, shared: Account, email: str) -> None:
 
 
 @router.post("/accept-invite/login", response_model=TokenResponse)
-def accept_invite_login(data: AcceptInviteLogin, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def accept_invite_login(request: Request, data: AcceptInviteLogin, db: Session = Depends(get_db)):
     shared = _account_for_invite(db, data.token)
 
     user = db.query(Account).filter(Account.email == data.email).first()
     if not user or not verify_password(data.password, user.hashed_password):
+        log_security_event("login_failed", request, email=data.email, context="accept_invite")
         raise HTTPException(401, "Invalid email or password")
     if user.id == shared.id:
         raise HTTPException(400, "You can't accept an invite to your own account.")
@@ -299,7 +313,8 @@ def accept_invite_login(data: AcceptInviteLogin, db: Session = Depends(get_db)):
 
 
 @router.post("/accept-invite/register", response_model=TokenResponse, status_code=201)
-def accept_invite_register(data: AcceptInviteRegister, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def accept_invite_register(request: Request, data: AcceptInviteRegister, db: Session = Depends(get_db)):
     shared = _account_for_invite(db, data.token)
 
     if db.query(Account).filter(Account.email == data.email).first():

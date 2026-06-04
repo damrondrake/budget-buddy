@@ -3,11 +3,15 @@ import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.email import get_resend_api_key, get_frontend_url
 from app.routers import auth, transactions, budgets, categories, income, summary, users, recurring, trends, savings
+from app.security import limiter
 
 # override=False so platform-injected env vars (Railway) always win over any .env file.
 load_dotenv(override=False)
@@ -24,8 +28,8 @@ async def lifespan(app: FastAPI):
     _log.info("Env keys starting with 'RESEND': %s", resend_keys or "(none)")
 
     resend_api_key = get_resend_api_key()
-    # Confirm which email-related env vars Railway is injecting, WITHOUT
-    # ever printing the secret value of RESEND_API_KEY.
+    # Report presence of email config as booleans only — never log any part of
+    # the secret value (not even a prefix or its length).
     _log.info(
         "Email config at startup - RESEND_API_KEY set: %s | "
         "RESEND_FROM_EMAIL set: %s | FRONTEND_URL: %s",
@@ -33,15 +37,7 @@ async def lifespan(app: FastAPI):
         bool(os.getenv("RESEND_FROM_EMAIL")),
         get_frontend_url(),
     )
-    if resend_api_key:
-        # Confirm Railway is injecting the right value: prefix only, never the
-        # full secret. Logging length too surfaces stray whitespace/newlines.
-        _log.info(
-            "RESEND_API_KEY detected - prefix: %s... (length %d)",
-            resend_api_key[:8],
-            len(resend_api_key),
-        )
-    else:
+    if not resend_api_key:
         _log.warning(
             "RESEND_API_KEY is NOT set - password-reset and invite emails will be "
             "skipped (endpoints still return 200). Set it in Railway -> backend "
@@ -56,6 +52,39 @@ _configured = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 allow_origins = list(dict.fromkeys([*_configured, LOCAL_DEV_ORIGIN]))
 
 app = FastAPI(title="BudgetBuddy API", version="0.1.0", lifespan=lifespan)
+
+# --- Rate limiting (slowapi) ------------------------------------------------
+# Per-route limits are declared with @limiter.limit(...) on sensitive auth
+# endpoints. Register the shared limiter and a handler that returns 429.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+
+# --- Security headers -------------------------------------------------------
+# Applied to every response. Sent on API (JSON) responses; the frontend ships
+# its own header set via vercel.json for the static app.
+SECURITY_HEADERS = {
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "X-XSS-Protection": "1; mode=block",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Content-Security-Policy": (
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    ),
+}
+
+
+@app.middleware("http")
+async def set_security_headers(request: Request, call_next) -> Response:
+    response = await call_next(request)
+    for header, value in SECURITY_HEADERS.items():
+        response.headers[header] = value
+    return response
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -82,21 +111,3 @@ app.include_router(savings.router)
 @app.get("/api/health")
 def health_check():
     return {"status": "healthy", "app": "BudgetBuddy"}
-
-
-@app.get("/api/debug/env")
-def debug_env():
-    """Diagnostics: report which expected env vars the process sees.
-
-    Returns booleans only (presence + non-empty) — never the values — so it's
-    safe to hit directly. Lets us confirm exactly what Railway is injecting.
-    """
-    names = [
-        "RESEND_API_KEY",
-        "RESEND_FROM_EMAIL",
-        "FRONTEND_URL",
-        "DATABASE_URL",
-        "SECRET_KEY",
-        "CORS_ORIGINS",
-    ]
-    return {name: bool(os.getenv(name)) for name in names}
