@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import api from '../api/client'
+import api, { applyDueRecurring } from '../api/client'
+import { showToast } from '../components/Toast'
 
 const AuthContext = createContext()
 
@@ -52,6 +53,24 @@ export function AuthProvider({ children }) {
         if (cancelled) return
         setAccount(res.data)
         localStorage.setItem(ACCOUNT_KEY, JSON.stringify(res.data))
+        // Silently apply any recurring transactions due as of today. This runs
+        // after login (token changes) and on page-load hydration. Fire-and-
+        // forget — it never blocks the UI, and only toasts if it created any.
+        applyDueRecurring()
+          .then((due) => {
+            if (cancelled) return
+            const { applied, month, year } = due.data
+            if (applied > 0) {
+              const label = new Date(year, month - 1).toLocaleString('default', {
+                month: 'long',
+                year: 'numeric',
+              })
+              showToast(
+                `${applied} recurring transaction${applied === 1 ? '' : 's'} added for ${label}`
+              )
+            }
+          })
+          .catch(() => {})
       })
       .catch(() => {
         if (cancelled) return

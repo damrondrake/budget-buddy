@@ -33,3 +33,10 @@ class RecurringOut(BaseModel):
     paid_by_name: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class ApplyDueResult(BaseModel):
+    # How many transactions were created, plus the period they were applied for.
+    applied: int
+    month: int
+    year: int

@@ -84,6 +84,7 @@ export const getRecurring = () => api.get('/recurring')
 export const createRecurring = (data) => api.post('/recurring', data)
 export const deleteRecurring = (id) => api.delete(`/recurring/${id}`)
 export const applyRecurring = (params) => api.post('/recurring/apply', null, { params })
+export const applyDueRecurring = () => api.post('/recurring/apply-due')
 
 // Users
 export const getUsers = () => api.get('/users')

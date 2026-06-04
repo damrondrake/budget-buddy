@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { UsersProvider } from './context/UsersContext'
 import ErrorBoundary from './components/ErrorBoundary'
+import Toast from './components/Toast'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
@@ -54,6 +55,7 @@ export default function App() {
     // entire app. Each page below also has its own boundary.
     <ErrorBoundary>
       <AuthProvider>
+        <Toast />
         <Routes>
           <Route
             path="/login"

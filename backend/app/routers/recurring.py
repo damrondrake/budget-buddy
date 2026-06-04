@@ -7,7 +7,7 @@ from app.database import get_db
 from app.auth import get_current_account
 from app.models import RecurringTransaction, Transaction, Category, User
 from app.models.account import Account
-from app.schemas.recurring import RecurringCreate, RecurringOut
+from app.schemas.recurring import RecurringCreate, RecurringOut, ApplyDueResult
 from app.schemas.transaction import TransactionOut
 
 router = APIRouter(prefix="/api/recurring", tags=["recurring"])
@@ -170,6 +170,100 @@ def apply_recurring(
         db.refresh(t)
 
     return [_enrich_transaction(t) for t in created]
+
+
+@router.post("/apply-due", response_model=ApplyDueResult)
+def apply_due_recurring(
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    """Apply all recurring rules that are due as of today, for the current month.
+
+    Idempotent — safe to call repeatedly (e.g. on every login). Weekly only
+    backfills occurrences that have already passed; monthly/yearly apply once
+    per period. Returns how many transactions were created.
+    """
+    from sqlalchemy import extract
+    from datetime import timedelta
+    import calendar
+
+    today = date.today()
+    month, year = today.month, today.year
+    last_day = calendar.monthrange(year, month)[1]
+
+    recurring = db.query(RecurringTransaction).filter(
+        RecurringTransaction.account_id == account.id
+    ).all()
+    created_count = 0
+
+    def _exists_on(r: RecurringTransaction, when: date) -> bool:
+        return (
+            db.query(Transaction)
+            .filter(
+                Transaction.recurring_id == r.id,
+                Transaction.account_id == account.id,
+                Transaction.date == when,
+            )
+            .first()
+            is not None
+        )
+
+    def _create(r: RecurringTransaction, when: date) -> None:
+        nonlocal created_count
+        db.add(Transaction(
+            amount=r.amount,
+            category_id=r.category_id,
+            paid_by=r.paid_by,
+            is_split=r.is_split,
+            date=when,
+            note=r.note,
+            is_recurring=True,
+            recurring_id=r.id,
+            account_id=account.id,
+        ))
+        created_count += 1
+
+    for r in recurring:
+        if r.frequency == "weekly":
+            # Only occurrences that have already passed this month.
+            when = date(year, month, min(r.day_of_month, last_day))
+            while when.year == year and when.month == month and when <= today:
+                if not _exists_on(r, when):
+                    _create(r, when)
+                when = when + timedelta(days=7)
+        elif r.frequency == "yearly":
+            anchor_month = r.month_of_year or month
+            if anchor_month != month:
+                continue
+            already_this_year = (
+                db.query(Transaction)
+                .filter(
+                    Transaction.recurring_id == r.id,
+                    Transaction.account_id == account.id,
+                    extract("year", Transaction.date) == year,
+                )
+                .first()
+            )
+            if already_this_year:
+                continue
+            _create(r, date(year, month, min(r.day_of_month, last_day)))
+        else:  # monthly — once per current month
+            already_this_month = (
+                db.query(Transaction)
+                .filter(
+                    Transaction.recurring_id == r.id,
+                    Transaction.account_id == account.id,
+                    extract("month", Transaction.date) == month,
+                    extract("year", Transaction.date) == year,
+                )
+                .first()
+            )
+            if already_this_month:
+                continue
+            _create(r, date(year, month, min(r.day_of_month, last_day)))
+
+    db.commit()
+    return ApplyDueResult(applied=created_count, month=month, year=year)
 
 
 def _enrich_transaction(t: Transaction) -> TransactionOut:
