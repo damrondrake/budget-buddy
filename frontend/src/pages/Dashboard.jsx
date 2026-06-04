@@ -4,6 +4,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { getSummary, getTransactions, getCumulative } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
+import PageError from '../components/PageError'
+import { DashboardSkeleton } from '../components/Skeletons'
 import { formatMoney, formatDateShort } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
 
@@ -14,15 +16,29 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null)
   const [recentTxns, setRecentTxns] = useState([])
   const [cumulative, setCumulative] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const { users } = useUsers()
 
+  function load() {
+    setLoading(true)
+    setError(false)
+    Promise.all([getSummary(month, year), getTransactions({ month, year })])
+      .then(([summaryRes, txnsRes]) => {
+        setSummary(summaryRes.data)
+        setRecentTxns(txnsRes.data.slice(0, 5))
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }
+
   useEffect(() => {
-    getSummary(month, year).then((res) => setSummary(res.data))
-    getTransactions({ month, year }).then((res) => setRecentTxns(res.data.slice(0, 5)))
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, year])
 
   useEffect(() => {
-    getCumulative().then((res) => setCumulative(res.data))
+    getCumulative().then((res) => setCumulative(res.data)).catch(() => {})
   }, [])
 
   function getBalanceText(balance) {
@@ -46,8 +62,10 @@ export default function Dashboard() {
         <MonthPicker month={month} year={year} onChange={(m, y) => { setMonth(m); setYear(y) }} />
       </div>
 
-      {!summary ? (
-        <p className="text-gray-500">Loading...</p>
+      {loading ? (
+        <DashboardSkeleton />
+      ) : error || !summary ? (
+        <PageError onRetry={load} />
       ) : (
         <>
           {/* Stat cards */}

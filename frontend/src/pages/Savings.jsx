@@ -6,6 +6,8 @@ import {
 } from '../api/client'
 import EmptyState from '../components/EmptyState'
 import IconButton from '../components/ui/IconButton'
+import PageError from '../components/PageError'
+import { CardsSkeleton } from '../components/Skeletons'
 import { formatMoney, formatDate } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
 
@@ -36,13 +38,20 @@ export default function Savings() {
   // The goal currently having a deposit/withdrawal added, plus the form state.
   const [txnGoal, setTxnGoal] = useState(null)
   const [txnForm, setTxnForm] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     fetchGoals()
   }, [])
 
   function fetchGoals() {
-    getSavings().then((res) => setGoals(res.data))
+    setLoading(true)
+    setError(false)
+    getSavings()
+      .then((res) => setGoals(res.data))
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
   }
 
   async function handleCreateGoal(e) {
@@ -189,7 +198,11 @@ export default function Savings() {
       </form>
 
       {/* Goal cards */}
-      {goals.length === 0 ? (
+      {loading ? (
+        <CardsSkeleton count={4} columns="lg:grid-cols-2" />
+      ) : error ? (
+        <PageError onRetry={fetchGoals} />
+      ) : goals.length === 0 ? (
         <EmptyState
           icon={
             <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

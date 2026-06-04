@@ -7,6 +7,8 @@ import {
 import MonthPicker from '../components/MonthPicker'
 import IconButton from '../components/ui/IconButton'
 import { BudgetsEmptyIcon } from '../components/EmptyState'
+import PageError from '../components/PageError'
+import { CardsSkeleton } from '../components/Skeletons'
 import { formatMoney } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
 
@@ -35,6 +37,8 @@ export default function Budgets() {
   // The budget awaiting a "who paid?" confirmation, plus the selected payer.
   const [payingBudget, setPayingBudget] = useState(null)
   const [payByUserId, setPayByUserId] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     getCategories().then((res) => setCategories(res.data))
@@ -45,14 +49,19 @@ export default function Budgets() {
   }, [month, year])
 
   function fetchData() {
-    getBudgets({ month, year }).then((res) => setBudgets(res.data))
-    getSummary(month, year).then((res) => {
-      const map = {}
-      for (const c of res.data.by_category) {
-        map[c.category_id] = c.spent
-      }
-      setSpending(map)
-    })
+    setLoading(true)
+    setError(false)
+    Promise.all([getBudgets({ month, year }), getSummary(month, year)])
+      .then(([budgetsRes, summaryRes]) => {
+        setBudgets(budgetsRes.data)
+        const map = {}
+        for (const c of summaryRes.data.by_category) {
+          map[c.category_id] = c.spent
+        }
+        setSpending(map)
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
   }
 
   async function handleSubmit(e) {
@@ -270,7 +279,15 @@ export default function Budgets() {
       )}
 
       {/* Budget cards */}
-      {budgets.length === 0 ? (
+      {loading ? (
+        <div className="mb-8">
+          <CardsSkeleton count={6} />
+        </div>
+      ) : error ? (
+        <div className="mb-8">
+          <PageError onRetry={fetchData} />
+        </div>
+      ) : budgets.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-10 text-center mb-6">
           <div className="flex justify-center mb-3 text-gray-300">
             <BudgetsEmptyIcon />
@@ -509,7 +526,7 @@ export default function Budgets() {
       )}
 
       {/* Unbudgeted categories */}
-      {unbudgeted.length > 0 && (
+      {!loading && !error && unbudgeted.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Unbudgeted Categories</h2>
           <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">

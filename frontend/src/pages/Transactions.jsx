@@ -6,6 +6,8 @@ import {
 import MonthPicker from '../components/MonthPicker'
 import IconButton from '../components/ui/IconButton'
 import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
+import PageError from '../components/PageError'
+import { ListRowsSkeleton } from '../components/Skeletons'
 import { formatMoney, formatDate } from '../utils/format'
 import { downloadCsvRows } from '../utils/exportCsv'
 import { useUsers } from '../context/UsersContext'
@@ -43,6 +45,8 @@ export default function Transactions() {
   const [editingId, setEditingId] = useState(null)
   const { users } = useUsers()
   const [form, setForm] = useState(() => emptyForm(users))
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   // Recurring state
   const [recurring, setRecurring] = useState([])
@@ -61,7 +65,12 @@ export default function Transactions() {
   }, [month, year])
 
   function fetchTransactions() {
-    getTransactions({ month, year }).then((res) => setTransactions(res.data))
+    setLoading(true)
+    setError(false)
+    getTransactions({ month, year })
+      .then((res) => setTransactions(res.data))
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
   }
 
   function fetchRecurring() {
@@ -509,7 +518,11 @@ export default function Transactions() {
       </div>
 
       {/* Transaction list */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <ListRowsSkeleton rows={6} />
+      ) : error ? (
+        <PageError onRetry={fetchTransactions} />
+      ) : filtered.length === 0 ? (
         <EmptyState
           icon={<TransactionsEmptyIcon />}
           message={filterCat ? 'No transactions in this category.' : 'No transactions this month — add one to get started.'}
@@ -566,7 +579,7 @@ export default function Transactions() {
       )}
 
       {/* Total */}
-      {filtered.length > 0 && (
+      {!loading && !error && filtered.length > 0 && (
         <div className="mt-4 flex justify-end">
           <div className="bg-white rounded-xl border border-gray-200 px-5 py-3">
             <span className="text-sm text-gray-500">Total: </span>

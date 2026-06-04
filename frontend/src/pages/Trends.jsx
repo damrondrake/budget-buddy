@@ -4,21 +4,36 @@ import {
   Legend, PieChart, Pie, LineChart, Line, CartesianGrid,
 } from 'recharts'
 import { getTrends } from '../api/client'
+import PageError from '../components/PageError'
+import { TrendsSkeleton } from '../components/Skeletons'
 import { formatMoney } from '../utils/format'
 import { downloadCsvRows } from '../utils/exportCsv'
 
 export default function Trends() {
   const [data, setData] = useState(null)
   const [selectedIdx, setSelectedIdx] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  function load() {
+    setLoading(true)
+    setError(false)
+    getTrends(6)
+      .then((res) => {
+        setData(res.data)
+        setSelectedIdx(res.data.months.length - 1)
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
+  }
 
   useEffect(() => {
-    getTrends(6).then((res) => {
-      setData(res.data)
-      setSelectedIdx(res.data.months.length - 1)
-    })
+    load()
   }, [])
 
-  if (!data) return <p className="text-gray-500">Loading...</p>
+  if (loading) return <TrendsSkeleton />
+  if (error) return <PageError onRetry={load} />
+  if (!data) return null
 
   const { months } = data
   const selected = selectedIdx !== null ? months[selectedIdx] : null

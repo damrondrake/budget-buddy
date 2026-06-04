@@ -3,6 +3,8 @@ import { getIncome, createIncome, updateIncome, deleteIncome } from '../api/clie
 import MonthPicker from '../components/MonthPicker'
 import IconButton from '../components/ui/IconButton'
 import EmptyState, { IncomeEmptyIcon } from '../components/EmptyState'
+import PageError from '../components/PageError'
+import { ListRowsSkeleton } from '../components/Skeletons'
 import { formatMoney } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
 
@@ -15,12 +17,15 @@ export default function Income() {
   const [formSource, setFormSource] = useState('')
   const [formUser, setFormUser] = useState('')
   const [editingId, setEditingId] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const { users } = useUsers()
 
   const userMap = Object.fromEntries(users.map((u) => [u.id, u.name]))
 
   useEffect(() => {
     fetchIncome()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, year])
 
   useEffect(() => {
@@ -30,7 +35,12 @@ export default function Income() {
   }, [users, formUser])
 
   function fetchIncome() {
-    getIncome({ month, year }).then((res) => setIncome(res.data))
+    setLoading(true)
+    setError(false)
+    getIncome({ month, year })
+      .then((res) => setIncome(res.data))
+      .catch(() => setError(true))
+      .finally(() => setLoading(false))
   }
 
   async function handleSubmit(e) {
@@ -158,7 +168,11 @@ export default function Income() {
       </form>
 
       {/* Income list */}
-      {income.length === 0 ? (
+      {loading ? (
+        <ListRowsSkeleton rows={5} />
+      ) : error ? (
+        <PageError onRetry={fetchIncome} />
+      ) : income.length === 0 ? (
         <EmptyState
           icon={<IncomeEmptyIcon />}
           message="No income entries this month — use the form above to add one."
