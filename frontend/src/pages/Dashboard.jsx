@@ -8,6 +8,7 @@ import PageError from '../components/PageError'
 import { DashboardSkeleton } from '../components/Skeletons'
 import { formatMoney, formatDateShort } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
+import usePolling from '../hooks/usePolling'
 
 // Permanently dismiss the "add a starting balance" first-run banner.
 const HIDE_BANNER_KEY = 'budgetbuddy_hide_starting_balance_banner'
@@ -27,22 +28,30 @@ export default function Dashboard() {
   )
   const { users } = useUsers()
 
-  function load() {
-    setLoading(true)
-    setError(false)
+  // `silent` skips the loading skeleton — used by background polling so the
+  // page refreshes in place without flashing a spinner.
+  function load(silent = false) {
+    if (!silent) {
+      setLoading(true)
+      setError(false)
+    }
     Promise.all([getSummary(month, year), getTransactions({ month, year })])
       .then(([summaryRes, txnsRes]) => {
         setSummary(summaryRes.data)
         setRecentTxns(txnsRes.data.slice(0, 5))
       })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false))
+      .catch(() => { if (!silent) setError(true) })
+      .finally(() => { if (!silent) setLoading(false) })
   }
 
   useEffect(() => {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, year])
+
+  // Auto-refresh summary + recent transactions so shared-account changes show
+  // up without a manual reload.
+  usePolling(() => load(true))
 
   useEffect(() => {
     getCumulative().then((res) => setCumulative(res.data)).catch(() => {})

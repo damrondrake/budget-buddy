@@ -5,6 +5,7 @@ import { getCumulative } from '../api/client'
 import { formatMoney } from '../utils/format'
 import BudgetBuddyLogo from './BudgetBuddyLogo'
 import WhatsNew from './WhatsNew'
+import usePolling from '../hooks/usePolling'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: DashboardIcon },
@@ -31,6 +32,14 @@ export default function Layout() {
       .catch(() => { if (active) setCumulative(null) })
     return () => { active = false }
   }, [location.pathname])
+
+  // Also poll in the background so a shared-account partner's changes keep the
+  // balance current without a navigation or manual refresh.
+  usePolling(() => {
+    getCumulative()
+      .then((res) => setCumulative(res.data))
+      .catch(() => {})
+  })
 
   function handleLogout() {
     logout()

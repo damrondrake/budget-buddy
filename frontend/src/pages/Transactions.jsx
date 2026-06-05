@@ -13,6 +13,7 @@ import { formatMoney, formatDate } from '../utils/format'
 import { downloadCsvRows } from '../utils/exportCsv'
 import { useUsers } from '../context/UsersContext'
 import useDraft from '../hooks/useDraft'
+import usePolling from '../hooks/usePolling'
 
 const FREQ_LABEL = { weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' }
 
@@ -73,13 +74,19 @@ export default function Transactions() {
     fetchTransactions()
   }, [month, year])
 
-  function fetchTransactions() {
-    setLoading(true)
-    setError(false)
+  // Auto-refresh in the background so a partner's edits appear without a reload.
+  usePolling(() => fetchTransactions(true))
+
+  // `silent` skips the loading skeleton — used by background polling.
+  function fetchTransactions(silent = false) {
+    if (!silent) {
+      setLoading(true)
+      setError(false)
+    }
     getTransactions({ month, year })
       .then((res) => setTransactions(res.data))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false))
+      .catch(() => { if (!silent) setError(true) })
+      .finally(() => { if (!silent) setLoading(false) })
   }
 
   function fetchRecurring() {

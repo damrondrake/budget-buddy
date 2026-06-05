@@ -9,6 +9,7 @@ import DraftRestored from '../components/DraftRestored'
 import { formatMoney } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
 import useDraft from '../hooks/useDraft'
+import usePolling from '../hooks/usePolling'
 
 export default function Income() {
   const now = new Date()
@@ -32,6 +33,9 @@ export default function Income() {
     fetchIncome()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, year])
+
+  // Auto-refresh income in the background so shared-account changes show up.
+  usePolling(() => fetchIncome(true))
 
   useEffect(() => {
     if (!formUser && users.length > 0) {
@@ -60,13 +64,16 @@ export default function Income() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formAmount, formSource, formUser, editingId])
 
-  function fetchIncome() {
-    setLoading(true)
-    setError(false)
+  // `silent` skips the loading skeleton — used by background polling.
+  function fetchIncome(silent = false) {
+    if (!silent) {
+      setLoading(true)
+      setError(false)
+    }
     getIncome({ month, year })
       .then((res) => setIncome(res.data))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false))
+      .catch(() => { if (!silent) setError(true) })
+      .finally(() => { if (!silent) setLoading(false) })
   }
 
   async function handleSubmit(e) {

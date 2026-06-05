@@ -12,6 +12,7 @@ import DraftRestored from '../components/DraftRestored'
 import { formatMoney, formatDate } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
 import useDraft from '../hooks/useDraft'
+import usePolling from '../hooks/usePolling'
 
 const PALETTE = [
   '#22C55E', '#6366F1', '#EC4899', '#F59E0B', '#0EA5E9',
@@ -51,6 +52,9 @@ export default function Savings() {
     fetchGoals()
   }, [])
 
+  // Auto-refresh savings goals in the background so shared-account changes show up.
+  usePolling(() => fetchGoals(true))
+
   // When a deposit/withdraw modal opens, restore that goal's draft (or seed a
   // fresh form). Runs after txnGoal changes so the draft key is up to date.
   useEffect(() => {
@@ -85,13 +89,16 @@ export default function Savings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txnForm, txnGoal])
 
-  function fetchGoals() {
-    setLoading(true)
-    setError(false)
+  // `silent` skips the loading skeleton — used by background polling.
+  function fetchGoals(silent = false) {
+    if (!silent) {
+      setLoading(true)
+      setError(false)
+    }
     getSavings()
       .then((res) => setGoals(res.data))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false))
+      .catch(() => { if (!silent) setError(true) })
+      .finally(() => { if (!silent) setLoading(false) })
   }
 
   async function handleCreateGoal(e) {

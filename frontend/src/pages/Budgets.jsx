@@ -13,6 +13,7 @@ import DraftRestored from '../components/DraftRestored'
 import { formatMoney } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
 import useDraft from '../hooks/useDraft'
+import usePolling from '../hooks/usePolling'
 
 function todayStr() {
   const d = new Date()
@@ -50,9 +51,15 @@ export default function Budgets() {
     fetchData()
   }, [month, year])
 
-  function fetchData() {
-    setLoading(true)
-    setError(false)
+  // Auto-refresh budgets in the background so shared-account changes show up.
+  usePolling(() => fetchData(true))
+
+  // `silent` skips the loading skeleton — used by background polling.
+  function fetchData(silent = false) {
+    if (!silent) {
+      setLoading(true)
+      setError(false)
+    }
     Promise.all([getBudgets({ month, year }), getSummary(month, year)])
       .then(([budgetsRes, summaryRes]) => {
         setBudgets(budgetsRes.data)
@@ -62,8 +69,8 @@ export default function Budgets() {
         }
         setSpending(map)
       })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false))
+      .catch(() => { if (!silent) setError(true) })
+      .finally(() => { if (!silent) setLoading(false) })
   }
 
   async function handleSubmit(e) {
