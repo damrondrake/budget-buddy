@@ -11,6 +11,7 @@ import PageError from '../components/PageError'
 import { CardsSkeleton } from '../components/Skeletons'
 import DraftRestored from '../components/DraftRestored'
 import { formatMoney } from '../utils/format'
+import { budgetBarColor, isOverBudget } from '../utils/budget'
 import { useUsers } from '../context/UsersContext'
 import useDraft from '../hooks/useDraft'
 import usePolling from '../hooks/usePolling'
@@ -321,11 +322,11 @@ export default function Budgets() {
             const remaining = effectiveLimit - spent
             const pct = effectiveLimit > 0 ? (spent / effectiveLimit) * 100 : 0
             const isPaid = b.paid
-            // A paid budget always reads as a full green bar, regardless of spend.
-            const barColor = isPaid
-              ? 'bg-emerald-500'
-              : pct >= 100 ? 'bg-red-500' : pct >= 75 ? 'bg-amber-500' : 'bg-emerald-500'
+            // Paid → green (success); over → red; exactly full → blue; else
+            // yellow/green by usage. Shared with the Dashboard via budgetBarColor.
+            const barColor = budgetBarColor({ spent, limit: effectiveLimit, paid: isPaid })
             const barWidth = isPaid ? 100 : Math.min(pct, 100)
+            const overBudget = isOverBudget(spent, effectiveLimit)
 
             const isEditing = editingId === b.id
 
@@ -411,9 +412,13 @@ export default function Budgets() {
                     </svg>
                     Paid
                   </p>
-                ) : pct >= 100 && (
+                ) : overBudget ? (
                   <p className="text-xs text-red-500 font-medium mt-1">
                     Over budget by {formatMoney(spent - effectiveLimit)}
+                  </p>
+                ) : pct >= 100 && (
+                  <p className="text-xs text-blue-600 font-medium mt-1">
+                    Fully used — mark as paid to confirm
                   </p>
                 )}
 

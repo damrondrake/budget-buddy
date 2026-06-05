@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { getSummary, getTransactions, getCumulative, getStartingBalance, getSettlements, createSettlement, getHealthScore } from '../api/client'
+import { getSummary, getTransactions, getCumulative, getStartingBalance, getSettlements, createSettlement, getHealthScore, setBudgetPaid, createTransaction } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
 import PageError from '../components/PageError'
@@ -9,6 +9,7 @@ import SettlementHistory from '../components/SettlementHistory'
 import HealthScoreCard from '../components/HealthScoreCard'
 import { DashboardSkeleton } from '../components/Skeletons'
 import { formatMoney, formatDateShort } from '../utils/format'
+import { budgetBarColor, isOverBudget } from '../utils/budget'
 import { useUsers } from '../context/UsersContext'
 import usePolling from '../hooks/usePolling'
 
@@ -35,6 +36,10 @@ export default function Dashboard() {
   const [settleForm, setSettleForm] = useState({ amount: '', date: todayStr(), note: '' })
   const [settling, setSettling] = useState(false)
   const [settleError, setSettleError] = useState(null)
+  // Mark-as-paid "who paid?" modal (mirrors the Budgets page flow)
+  const [payingBudget, setPayingBudget] = useState(null)
+  const [payByUserId, setPayByUserId] = useState('')
+  const [payingSubmitting, setPayingSubmitting] = useState(false)
   const [startingBalance, setStartingBalance] = useState(undefined)
   const [bannerDismissed, setBannerDismissed] = useState(
     () => !!localStorage.getItem(HIDE_BANNER_KEY)
@@ -156,6 +161,35 @@ export default function Dashboard() {
       setSettleError(typeof detail === 'string' ? detail : 'Failed to record settlement.')
     } finally {
       setSettling(false)
+    }
+  }
+
+  // Mark-as-paid quick action: opens the same "who paid?" prompt the Budgets
+  // page uses, then records the transaction and flags the budget paid.
+  function openPay(cat) {
+    setPayByUserId(String(users[0]?.id ?? ''))
+    setPayingBudget(cat)
+  }
+
+  async function confirmPaid() {
+    const cat = payingBudget
+    const userId = parseInt(payByUserId)
+    if (!cat || !userId) return
+    setPayingSubmitting(true)
+    try {
+      await createTransaction({
+        amount: cat.budget_limit,
+        category_id: cat.category_id,
+        paid_by: userId,
+        date: todayStr(),
+        note: `Paid - ${cat.category_name}`,
+      })
+      await setBudgetPaid(cat.budget_id, true)
+      setPayingBudget(null)
+      load()
+      fetchHealth()
+    } finally {
+      setPayingSubmitting(false)
     }
   }
 
@@ -286,7 +320,7 @@ export default function Dashboard() {
             {budgeted.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {budgeted.map((cat) => (
-                  <BudgetCard key={cat.category_id} cat={cat} />
+                  <BudgetCard key={cat.category_id} cat={cat} onMarkPaid={openPay} />
                 ))}
               </div>
             ) : (
@@ -445,6 +479,53 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Mark-as-paid "who paid?" modal — mirrors the Budgets page */}
+      {payingBudget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm p-4"
+          onClick={() => !payingSubmitting && setPayingBudget(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">
+              Mark {payingBudget.category_name} as paid
+            </h3>
+            <p className="text-xs text-gray-500 mb-4">
+              This records a {formatMoney(payingBudget.budget_limit)} transaction dated today. Who paid?
+            </p>
+            <select
+              value={payByUserId}
+              onChange={(e) => setPayByUserId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none mb-4"
+            >
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPayingBudget(null)}
+                disabled={payingSubmitting}
+                className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmPaid}
+                disabled={!payByUserId || payingSubmitting}
+                className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {payingSubmitting ? 'Saving...' : 'Confirm Paid'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -458,34 +539,61 @@ function StatCard({ label, value, color, small }) {
   )
 }
 
-function BudgetCard({ cat }) {
-  const pct = cat.budget_limit > 0 ? (cat.spent / cat.budget_limit) * 100 : 0
-  const barColor =
-    pct >= 100 ? 'bg-red-500' : pct >= 75 ? 'bg-amber-500' : 'bg-emerald-500'
+function BudgetCard({ cat, onMarkPaid }) {
+  const limit = cat.budget_limit || 0
+  const pct = limit > 0 ? (cat.spent / limit) * 100 : 0
+  const isPaid = !!cat.paid
+  const barColor = budgetBarColor({ spent: cat.spent, limit, paid: isPaid })
+  const barWidth = isPaid ? 100 : Math.min(pct, 100)
+  const over = isOverBudget(cat.spent, limit)
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-        <span className="text-sm font-medium text-gray-900">{cat.category_name}</span>
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+          <span className="text-sm font-medium text-gray-900 truncate">{cat.category_name}</span>
+          {isPaid && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold shrink-0">
+              ✓ Paid
+            </span>
+          )}
+        </div>
+        {!isPaid && cat.budget_id && (
+          <button
+            type="button"
+            onClick={() => onMarkPaid(cat)}
+            title="Mark as paid"
+            aria-label={`Mark ${cat.category_name} as paid`}
+            className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
+        )}
       </div>
       <div className="flex items-baseline justify-between mb-2.5">
         <span className="text-xl font-bold tracking-tight text-gray-900">{formatMoney(cat.spent)}</span>
-        <span className="text-sm text-gray-400">/ {formatMoney(cat.budget_limit)}</span>
+        <span className="text-sm text-gray-400">/ {formatMoney(limit)}</span>
       </div>
       <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
         <div
           className={`h-3 rounded-full transition-all duration-500 ${barColor}`}
-          style={{ width: `${Math.min(pct, 100)}%` }}
+          style={{ width: `${barWidth}%` }}
         />
       </div>
       <div className="flex items-center justify-between mt-2">
         <span className="text-xs text-gray-400">{Math.round(pct)}% used</span>
-        {pct >= 100 && (
+        {isPaid ? (
+          <span className="text-xs text-emerald-600 font-medium">Paid in full</span>
+        ) : over ? (
           <span className="text-xs text-red-500 font-medium">
-            Over by {formatMoney(cat.spent - cat.budget_limit)}
+            Over by {formatMoney(cat.spent - limit)}
           </span>
-        )}
+        ) : pct >= 100 ? (
+          <span className="text-xs text-blue-600 font-medium">Fully used</span>
+        ) : null}
       </div>
     </div>
   )

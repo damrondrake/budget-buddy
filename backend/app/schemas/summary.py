@@ -7,6 +7,11 @@ class CategorySpending(BaseModel):
     color: str
     spent: float
     budget_limit: float | None
+    # Budget reference + paid status, so the Dashboard can mark a budget paid
+    # and color its bar the same way the Budgets page does. None when the
+    # category has no budget this month.
+    budget_id: int | None = None
+    paid: bool = False
 
 
 class SummaryOut(BaseModel):

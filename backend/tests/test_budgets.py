@@ -71,6 +71,21 @@ def test_mark_budget_as_paid(client, auth):
     assert res.json()["paid"] is True
 
 
+def test_summary_exposes_budget_id_and_paid(client, auth):
+    budget_id = client.post("/api/budgets", headers=auth.headers, json=_budget(auth)).json()["id"]
+
+    def _cat_row():
+        summary = client.get("/api/summary/6/2026", headers=auth.headers).json()
+        return next(c for c in summary["by_category"] if c["category_id"] == auth.category_id)
+
+    row = _cat_row()
+    assert row["budget_id"] == budget_id
+    assert row["paid"] is False
+
+    client.put(f"/api/budgets/{budget_id}/paid", headers=auth.headers, json={"paid": True})
+    assert _cat_row()["paid"] is True
+
+
 def test_delete_budget(client, auth):
     budget_id = client.post("/api/budgets", headers=auth.headers, json=_budget(auth)).json()["id"]
     assert client.delete(f"/api/budgets/{budget_id}", headers=auth.headers).status_code == 204

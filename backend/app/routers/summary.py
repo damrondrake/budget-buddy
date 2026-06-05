@@ -72,6 +72,7 @@ def get_summary(
     def budget_total(b: Budget) -> float:
         return sum(li.amount for li in b.line_items) if b.line_items else b.amount_limit
     budget_map = {b.category_id: round(budget_total(b), 2) for b in budgets}
+    budget_by_cat = {b.category_id: b for b in budgets}
 
     categories = db.query(Category).filter(Category.account_id == account.id).all()
 
@@ -79,6 +80,7 @@ def get_summary(
     for cat in categories:
         spent = cat_spending.get(cat.id, 0.0)
         if spent > 0 or cat.id in budget_map:
+            budget = budget_by_cat.get(cat.id)
             by_category.append(
                 CategorySpending(
                     category_id=cat.id,
@@ -86,6 +88,8 @@ def get_summary(
                     color=cat.color,
                     spent=round(spent, 2),
                     budget_limit=budget_map.get(cat.id),
+                    budget_id=budget.id if budget else None,
+                    paid=bool(budget.paid) if budget else False,
                 )
             )
 
