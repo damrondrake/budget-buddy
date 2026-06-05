@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class SubscriptionOut(BaseModel):
@@ -21,3 +21,15 @@ class PortalSessionOut(BaseModel):
     """URL to redirect the browser to for the Stripe Customer Portal."""
 
     url: str
+
+
+class WaitlistRequest(BaseModel):
+    """An email signup for the upcoming Pro launch."""
+
+    email: EmailStr
+
+
+class WaitlistOut(BaseModel):
+    """Confirmation message after joining the Pro waitlist."""
+
+    message: str

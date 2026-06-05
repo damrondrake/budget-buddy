@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from app.models import Account, Subscription
+from app.models import Account, Subscription, WaitlistEntry
 from app.routers.billing import (
     _handle_checkout_completed,
     _handle_subscription_deleted,
@@ -33,6 +33,47 @@ def test_subscription_defaults_to_free(client, auth):
 
 def test_subscription_requires_auth(client):
     assert client.get("/api/billing/subscription").status_code == 401
+
+
+def test_waitlist_signup_persists_row(client, auth, db_engine):
+    res = client.post(
+        "/api/billing/waitlist",
+        headers=auth.headers,
+        json={"email": "Future.User@Example.com"},
+    )
+    assert res.status_code == 200, res.text
+    assert "launch" in res.json()["message"].lower()
+
+    with Session(db_engine) as s:
+        rows = s.query(WaitlistEntry).all()
+        assert len(rows) == 1
+        # Stored normalized (trimmed + lowercased) and tied to the account.
+        assert rows[0].email == "future.user@example.com"
+        assert rows[0].account_id is not None
+
+
+def test_waitlist_signup_is_idempotent(client, auth, db_engine):
+    for _ in range(3):
+        client.post(
+            "/api/billing/waitlist",
+            headers=auth.headers,
+            json={"email": "dupe@example.com"},
+        )
+    with Session(db_engine) as s:
+        assert s.query(WaitlistEntry).filter_by(email="dupe@example.com").count() == 1
+
+
+def test_waitlist_rejects_invalid_email(client, auth):
+    res = client.post(
+        "/api/billing/waitlist",
+        headers=auth.headers,
+        json={"email": "not-an-email"},
+    )
+    assert res.status_code == 422
+
+
+def test_waitlist_requires_auth(client):
+    assert client.post("/api/billing/waitlist", json={"email": "a@b.com"}).status_code == 401
 
 
 def test_get_current_plan_reflects_active_pro(client, auth, db_engine):

@@ -10,6 +10,7 @@ from app.models.income import Income
 from app.models.savings import SavingsGoal, SavingsAllocation, SavingsTransaction
 from app.models.changelog import Changelog
 from app.models.subscription import Subscription
+from app.models.waitlist import WaitlistEntry
 
 __all__ = [
     "Account", "AccountMember", "User", "Category", "Budget", "BudgetLineItem",
@@ -17,4 +18,5 @@ __all__ = [
     "SavingsGoal", "SavingsAllocation", "SavingsTransaction",
     "Changelog",
     "Subscription",
+    "WaitlistEntry",
 ]

@@ -20,7 +20,14 @@ from app.database import get_db
 from app.email import get_frontend_url
 from app.models.account import Account
 from app.models.subscription import Subscription
-from app.schemas.billing import CheckoutSessionOut, PortalSessionOut, SubscriptionOut
+from app.models.waitlist import WaitlistEntry
+from app.schemas.billing import (
+    CheckoutSessionOut,
+    PortalSessionOut,
+    SubscriptionOut,
+    WaitlistOut,
+    WaitlistRequest,
+)
 from app.stripe import (
     PRO_PRICE_CENTS,
     PRO_PRODUCT_NAME,
@@ -209,6 +216,35 @@ def create_portal(
         return_url=f"{get_frontend_url()}/billing",
     )
     return PortalSessionOut(url=session.url)
+
+
+@router.post("/waitlist", response_model=WaitlistOut)
+def join_waitlist(
+    data: WaitlistRequest,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    """Add an email to the BudgetBuddy Pro launch waitlist.
+
+    Pro isn't purchasable yet — the Billing page collects interested emails here
+    instead of starting Stripe Checkout. Idempotent per account+email so repeated
+    submissions don't create duplicate rows.
+    """
+    email = str(data.email).strip().lower()
+    existing = (
+        db.query(WaitlistEntry)
+        .filter(
+            WaitlistEntry.email == email,
+            WaitlistEntry.account_id == account.id,
+        )
+        .first()
+    )
+    if not existing:
+        db.add(WaitlistEntry(email=email, account_id=account.id))
+        db.commit()
+    return WaitlistOut(
+        message="You're on the list! We'll email you when BudgetBuddy Pro launches."
+    )
 
 
 # --- Webhook event handlers -------------------------------------------------
