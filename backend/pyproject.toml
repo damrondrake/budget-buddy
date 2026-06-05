@@ -1,0 +1,10 @@
+[tool.pytest.ini_options]
+# Make the `app` package importable when running pytest from the backend dir.
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/seed.py", "app/main.py"]
