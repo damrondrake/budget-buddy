@@ -112,6 +112,11 @@ export const deleteSettlement = (id) => api.delete(`/settlements/${id}`)
 // Trends
 export const getTrends = (months = 6) => api.get('/trends', { params: { months } })
 
+// Financial Health Score — 0-100 score with a 5-component breakdown.
+export const getHealthScore = (params) => api.get('/health-score', { params })
+export const getHealthScoreHistory = (months = 6) =>
+  api.get('/health-score/history', { params: { months } })
+
 // Billing (Stripe). Subscription status plus Checkout/Portal session creation.
 // The create-* calls return a hosted Stripe URL to redirect the browser to.
 // (Checkout/Portal are wired up server-side but unused while Pro is "Coming

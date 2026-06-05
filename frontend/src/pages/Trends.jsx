@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   Legend, PieChart, Pie, LineChart, Line, CartesianGrid,
 } from 'recharts'
-import { getTrends } from '../api/client'
+import { getTrends, getHealthScoreHistory } from '../api/client'
 import PageError from '../components/PageError'
 import { TrendsSkeleton } from '../components/Skeletons'
 import { formatMoney } from '../utils/format'
@@ -11,6 +11,7 @@ import { downloadCsvRows } from '../utils/exportCsv'
 
 export default function Trends() {
   const [data, setData] = useState(null)
+  const [healthHistory, setHealthHistory] = useState([])
   const [selectedIdx, setSelectedIdx] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -25,6 +26,10 @@ export default function Trends() {
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
+    // Health history is supplementary, so it loads independently.
+    getHealthScoreHistory(6)
+      .then((res) => setHealthHistory(res.data.points))
+      .catch(() => setHealthHistory([]))
   }
 
   useEffect(() => {
@@ -127,6 +132,34 @@ export default function Trends() {
           />
         </div>
       )}
+
+      {/* Financial Health Score over time */}
+      <section className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Financial Health Score</h2>
+        <p className="text-xs text-gray-400 mb-4">Your 0–100 score over the last {healthHistory.length || 6} months</p>
+        {healthHistory.length > 0 ? (
+          <ResponsiveContainer width="100%" height={260}>
+            <LineChart data={healthHistory} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="label" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+              <Tooltip formatter={(v, _n, p) => [`${v}  (Grade ${p.payload.grade})`, 'Score']} />
+              <Line
+                type="monotone"
+                dataKey="score"
+                stroke="#10b981"
+                strokeWidth={2.5}
+                dot={{ r: 4, fill: '#10b981' }}
+                activeDot={{ r: 5 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-[260px] text-gray-400 text-sm">
+            No score history yet.
+          </div>
+        )}
+      </section>
 
       {/* Month-over-month spending chart */}
       <section className="bg-white rounded-xl border border-gray-200 p-5 mb-6">

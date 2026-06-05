@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { getSummary, getTransactions, getCumulative, getStartingBalance, getSettlements, createSettlement } from '../api/client'
+import { getSummary, getTransactions, getCumulative, getStartingBalance, getSettlements, createSettlement, getHealthScore } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
 import PageError from '../components/PageError'
 import SettlementHistory from '../components/SettlementHistory'
+import HealthScoreCard from '../components/HealthScoreCard'
 import { DashboardSkeleton } from '../components/Skeletons'
 import { formatMoney, formatDateShort } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
@@ -25,6 +26,7 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null)
   const [recentTxns, setRecentTxns] = useState([])
   const [settlements, setSettlements] = useState([])
+  const [health, setHealth] = useState(null)
   const [cumulative, setCumulative] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -56,14 +58,23 @@ export default function Dashboard() {
       .finally(() => { if (!silent) setLoading(false) })
   }
 
+  // Health score is non-critical, so it loads on its own and a failure here
+  // never blanks the rest of the dashboard.
+  function fetchHealth() {
+    getHealthScore({ month, year })
+      .then((res) => setHealth(res.data))
+      .catch(() => setHealth(null))
+  }
+
   useEffect(() => {
     load()
+    fetchHealth()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [month, year])
 
   // Auto-refresh summary + recent transactions so shared-account changes show
   // up without a manual reload.
-  usePolling(() => load(true))
+  usePolling(() => { load(true); fetchHealth() })
 
   useEffect(() => {
     getCumulative().then((res) => setCumulative(res.data)).catch(() => {})
@@ -189,6 +200,9 @@ export default function Dashboard() {
         <PageError onRetry={load} />
       ) : (
         <>
+          {/* Financial Health Score */}
+          {health && <HealthScoreCard data={health} />}
+
           {/* Stat cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <StatCard label="Total Income" value={formatMoney(summary.total_income)} color="text-emerald-600" />
