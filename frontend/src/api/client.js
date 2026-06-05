@@ -94,6 +94,11 @@ export const updateUser = (id, data) => api.put(`/users/${id}`, data)
 export const getSummary = (month, year) => api.get(`/summary/${month}/${year}`)
 export const getCumulative = () => api.get('/cumulative')
 
+// Settlements — payments between partners that zero out the split balance.
+export const getSettlements = (params) => api.get('/settlements', { params })
+export const createSettlement = (data) => api.post('/settlements', data)
+export const deleteSettlement = (id) => api.delete(`/settlements/${id}`)
+
 // Trends
 export const getTrends = (months = 6) => api.get('/trends', { params: { months } })
 

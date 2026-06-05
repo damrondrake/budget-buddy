@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import {
   getTransactions, createTransaction, updateTransaction, deleteTransaction,
   getCategories, getRecurring, createRecurring, deleteRecurring, applyRecurring,
+  getSettlements,
 } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import IconButton from '../components/ui/IconButton'
 import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
 import PageError from '../components/PageError'
+import SettlementHistory from '../components/SettlementHistory'
 import { ListRowsSkeleton } from '../components/Skeletons'
 import DraftRestored from '../components/DraftRestored'
 import { formatMoney, formatDate } from '../utils/format'
@@ -46,6 +48,7 @@ export default function Transactions() {
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
   const [transactions, setTransactions] = useState([])
+  const [settlements, setSettlements] = useState([])
   const [categories, setCategories] = useState([])
   const [filterCat, setFilterCat] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -72,10 +75,11 @@ export default function Transactions() {
 
   useEffect(() => {
     fetchTransactions()
+    fetchSettlements()
   }, [month, year])
 
   // Auto-refresh in the background so a partner's edits appear without a reload.
-  usePolling(() => fetchTransactions(true))
+  usePolling(() => { fetchTransactions(true); fetchSettlements() })
 
   // `silent` skips the loading skeleton — used by background polling.
   function fetchTransactions(silent = false) {
@@ -87,6 +91,10 @@ export default function Transactions() {
       .then((res) => setTransactions(res.data))
       .catch(() => { if (!silent) setError(true) })
       .finally(() => { if (!silent) setLoading(false) })
+  }
+
+  function fetchSettlements() {
+    getSettlements({ month, year }).then((res) => setSettlements(res.data)).catch(() => {})
   }
 
   function fetchRecurring() {
@@ -698,6 +706,15 @@ export default function Transactions() {
           </div>
         </div>
       )}
+
+      {/* Settlements — separate, clearly labeled section for a full audit trail */}
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          Settlements
+          <span className="text-xs font-normal text-gray-400">payments between partners</span>
+        </h2>
+        <SettlementHistory settlements={settlements} onChange={fetchSettlements} defaultOpen />
+      </div>
     </div>
   )
 }

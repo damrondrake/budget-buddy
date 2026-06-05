@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { getSummary, getTransactions, getCumulative, getStartingBalance } from '../api/client'
+import { getSummary, getTransactions, getCumulative, getStartingBalance, getSettlements, createSettlement } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
 import PageError from '../components/PageError'
+import SettlementHistory from '../components/SettlementHistory'
 import { DashboardSkeleton } from '../components/Skeletons'
 import { formatMoney, formatDateShort } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
 import usePolling from '../hooks/usePolling'
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10)
+}
 
 // Permanently dismiss the "add a starting balance" first-run banner.
 const HIDE_BANNER_KEY = 'budgetbuddy_hide_starting_balance_banner'
@@ -19,9 +24,15 @@ export default function Dashboard() {
   const [year, setYear] = useState(now.getFullYear())
   const [summary, setSummary] = useState(null)
   const [recentTxns, setRecentTxns] = useState([])
+  const [settlements, setSettlements] = useState([])
   const [cumulative, setCumulative] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  // Settle Up modal
+  const [showSettle, setShowSettle] = useState(false)
+  const [settleForm, setSettleForm] = useState({ amount: '', date: todayStr(), note: '' })
+  const [settling, setSettling] = useState(false)
+  const [settleError, setSettleError] = useState(null)
   const [startingBalance, setStartingBalance] = useState(undefined)
   const [bannerDismissed, setBannerDismissed] = useState(
     () => !!localStorage.getItem(HIDE_BANNER_KEY)
@@ -35,10 +46,11 @@ export default function Dashboard() {
       setLoading(true)
       setError(false)
     }
-    Promise.all([getSummary(month, year), getTransactions({ month, year })])
-      .then(([summaryRes, txnsRes]) => {
+    Promise.all([getSummary(month, year), getTransactions({ month, year }), getSettlements({ month, year })])
+      .then(([summaryRes, txnsRes, settleRes]) => {
         setSummary(summaryRes.data)
         setRecentTxns(txnsRes.data.slice(0, 5))
+        setSettlements(settleRes.data)
       })
       .catch(() => { if (!silent) setError(true) })
       .finally(() => { if (!silent) setLoading(false) })
@@ -84,6 +96,56 @@ export default function Dashboard() {
     if (Math.abs(val) < 0.01) return { text: 'All settled up', color: 'text-gray-500' }
     if (val > 0) return { text: `${u2.name} owes ${u1.name} ${formatMoney(val)}`, color: 'text-emerald-600' }
     return { text: `${u1.name} owes ${u2.name} ${formatMoney(Math.abs(val))}`, color: 'text-red-500' }
+  }
+
+  // Work out who owes whom (and how much) so we can prefill the Settle Up modal.
+  // Returns null when there isn't a two-person account to settle between.
+  function getSettleInfo(balance) {
+    if (!balance || users.length < 2) return null
+    const u1 = users[0]
+    const u2 = users[1]
+    const val = balance[u1.name] || 0
+    if (Math.abs(val) < 0.01) return { settled: true }
+    // val > 0 means u2 owes u1; val < 0 means u1 owes u2.
+    const [debtor, creditor, amount] =
+      val > 0 ? [u2, u1, val] : [u1, u2, Math.abs(val)]
+    return { settled: false, debtor, creditor, amount: Math.round(amount * 100) / 100 }
+  }
+
+  const settleInfo = summary ? getSettleInfo(summary.balance_between_users) : null
+
+  function openSettle() {
+    if (!settleInfo || settleInfo.settled) return
+    setSettleError(null)
+    setSettleForm({ amount: String(settleInfo.amount), date: todayStr(), note: '' })
+    setShowSettle(true)
+  }
+
+  async function handleConfirmSettle(e) {
+    e.preventDefault()
+    setSettleError(null)
+    const amount = parseFloat(settleForm.amount)
+    if (Number.isNaN(amount) || amount <= 0) {
+      setSettleError('Enter an amount greater than 0.')
+      return
+    }
+    setSettling(true)
+    try {
+      await createSettlement({
+        paid_by: settleInfo.debtor.id,
+        paid_to: settleInfo.creditor.id,
+        amount,
+        note: settleForm.note || null,
+        date: settleForm.date,
+      })
+      setShowSettle(false)
+      load() // refresh balance + settlement history
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to record settlement. Please try again.'
+      setSettleError(typeof detail === 'string' ? detail : 'Failed to record settlement.')
+    } finally {
+      setSettling(false)
+    }
   }
 
   const balanceInfo = summary ? getBalanceText(summary.balance_between_users) : { text: '—', color: 'text-gray-400' }
@@ -143,6 +205,43 @@ export default function Dashboard() {
               small
             />
           </div>
+
+          {/* Settle Up — only for two-person accounts */}
+          {settleInfo && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Settle Up</p>
+                  {settleInfo.settled ? (
+                    <p className="text-lg font-bold text-emerald-600">All settled up! 🎉</p>
+                  ) : (
+                    <p className="text-lg font-bold text-gray-900">
+                      {settleInfo.debtor.name} owes {settleInfo.creditor.name}{' '}
+                      <span className="text-emerald-600">{formatMoney(settleInfo.amount)}</span>
+                    </p>
+                  )}
+                </div>
+                {!settleInfo.settled && (
+                  <button
+                    type="button"
+                    onClick={openSettle}
+                    className="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Settle Up
+                  </button>
+                )}
+              </div>
+              {/* Settlement history for the current month */}
+              {settlements.length > 0 && (
+                <div className="mt-4">
+                  <SettlementHistory settlements={settlements} onChange={() => load()} />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Cumulative Balance card */}
           {cumulative && (
@@ -259,6 +358,78 @@ export default function Dashboard() {
             </section>
           </div>
         </>
+      )}
+
+      {/* Settle Up modal */}
+      {showSettle && settleInfo && !settleInfo.settled && (
+        <div
+          className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => !settling && setShowSettle(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">Settle Up</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {settleInfo.debtor.name} owes {settleInfo.creditor.name}{' '}
+              <span className="font-semibold text-gray-900">{formatMoney(settleInfo.amount)}</span>.
+              Recording this payment will reset the balance.
+            </p>
+            <form onSubmit={handleConfirmSettle} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  value={settleForm.amount}
+                  onChange={(e) => setSettleForm({ ...settleForm, amount: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input
+                  type="date"
+                  required
+                  value={settleForm.date}
+                  onChange={(e) => setSettleForm({ ...settleForm, date: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Note (optional)</label>
+                <input
+                  type="text"
+                  value={settleForm.note}
+                  onChange={(e) => setSettleForm({ ...settleForm, note: e.target.value })}
+                  placeholder="e.g. Venmo, cash"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
+                />
+              </div>
+              {settleError && <p className="text-sm text-red-600">{settleError}</p>}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSettle(false)}
+                  disabled={settling}
+                  className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={settling}
+                  className="inline-flex items-center justify-center min-h-[44px] px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400"
+                >
+                  {settling ? 'Saving...' : 'Confirm Settlement'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   )

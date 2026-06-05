@@ -11,6 +11,7 @@ from app.models.savings import SavingsGoal, SavingsAllocation, SavingsTransactio
 from app.models.changelog import Changelog
 from app.models.subscription import Subscription
 from app.models.waitlist import WaitlistEntry
+from app.models.settlement import Settlement
 
 __all__ = [
     "Account", "AccountMember", "User", "Category", "Budget", "BudgetLineItem",
@@ -19,4 +20,5 @@ __all__ = [
     "Changelog",
     "Subscription",
     "WaitlistEntry",
+    "Settlement",
 ]

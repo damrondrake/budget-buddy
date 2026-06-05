@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.auth import get_current_account
-from app.models import Transaction, Budget, Income, Category, User
+from app.models import Transaction, Budget, Income, Category, User, Settlement
 from app.models.account import Account
 from app.schemas.summary import SummaryOut, CategorySpending, CumulativeOut
 
@@ -101,6 +101,26 @@ def get_summary(
                     net[name] += t.amount - share
                 else:
                     net[name] -= share
+
+    # Fold in settlements: paying someone reduces what you owe (pushes your net
+    # up toward zero) and reduces what they're owed (pushes theirs down toward
+    # zero), so a full settlement zeroes the balance out.
+    settlements = (
+        db.query(Settlement)
+        .filter(
+            Settlement.account_id == account.id,
+            extract("month", Settlement.date) == month,
+            extract("year", Settlement.date) == year,
+        )
+        .all()
+    )
+    for s in settlements:
+        payer = user_map.get(s.paid_by)
+        payee = user_map.get(s.paid_to)
+        if payer in net:
+            net[payer] += s.amount
+        if payee in net:
+            net[payee] -= s.amount
 
     balance = {name: round(val, 2) for name, val in net.items()}
 
