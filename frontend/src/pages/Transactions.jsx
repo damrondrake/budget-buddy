@@ -8,9 +8,11 @@ import IconButton from '../components/ui/IconButton'
 import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
 import PageError from '../components/PageError'
 import { ListRowsSkeleton } from '../components/Skeletons'
+import DraftRestored from '../components/DraftRestored'
 import { formatMoney, formatDate } from '../utils/format'
 import { downloadCsvRows } from '../utils/exportCsv'
 import { useUsers } from '../context/UsersContext'
+import useDraft from '../hooks/useDraft'
 
 const FREQ_LABEL = { weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' }
 
@@ -51,6 +53,9 @@ export default function Transactions() {
   const [form, setForm] = useState(() => emptyForm(users))
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  // Persisted "Add Transaction" modal draft.
+  const txnDraft = useDraft('draft_transaction', emptyForm(users))
+  const [txnDraftRestored, setTxnDraftRestored] = useState(false)
 
   // Recurring state
   const [recurring, setRecurring] = useState([])
@@ -83,9 +88,25 @@ export default function Transactions() {
 
   function openAdd() {
     setEditingId(null)
-    setForm(emptyForm(users))
+    const saved = txnDraft.load()
+    if (saved) {
+      setForm({ ...emptyForm(users), ...saved })
+      setTxnDraftRestored(true)
+    } else {
+      setForm(emptyForm(users))
+      setTxnDraftRestored(false)
+    }
     setShowForm(true)
   }
+
+  // Persist the Add Transaction modal as the user types — never while editing.
+  useEffect(() => {
+    if (!showForm || editingId) return
+    const dirty = form.amount !== '' || (form.note || '') !== '' || form.category_id !== ''
+    if (dirty) txnDraft.save(form)
+    else txnDraft.clear()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, showForm, editingId])
 
   function openEdit(t) {
     const rule = t.recurring_id ? recurring.find((r) => r.id === t.recurring_id) : null
@@ -108,6 +129,15 @@ export default function Transactions() {
     setEditingId(null)
   }
 
+  // Cancel/backdrop-dismiss of the Add modal discards the draft (per spec).
+  function handleCancel() {
+    if (!editingId) {
+      txnDraft.clear()
+      setTxnDraftRestored(false)
+    }
+    closeForm()
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     const payload = {
@@ -122,6 +152,8 @@ export default function Transactions() {
       await updateTransaction(editingId, payload)
     } else {
       await createTransaction(payload)
+      txnDraft.clear()
+      setTxnDraftRestored(false)
     }
     closeForm()
     fetchTransactions()
@@ -419,14 +451,17 @@ export default function Transactions() {
 
       {/* Modal form */}
       {showForm && (
-        <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeForm}>
+        <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={handleCancel}>
           <div
             className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              {editingId ? 'Edit Transaction' : 'Add Transaction'}
-            </h2>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                {editingId ? 'Edit Transaction' : 'Add Transaction'}
+              </h2>
+              <DraftRestored show={!editingId && txnDraftRestored} />
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -549,7 +584,7 @@ export default function Transactions() {
                 </button>
                 <button
                   type="button"
-                  onClick={closeForm}
+                  onClick={handleCancel}
                   className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel

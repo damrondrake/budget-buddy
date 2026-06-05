@@ -9,8 +9,10 @@ import IconButton from '../components/ui/IconButton'
 import { BudgetsEmptyIcon } from '../components/EmptyState'
 import PageError from '../components/PageError'
 import { CardsSkeleton } from '../components/Skeletons'
+import DraftRestored from '../components/DraftRestored'
 import { formatMoney } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
+import useDraft from '../hooks/useDraft'
 
 function todayStr() {
   const d = new Date()
@@ -27,9 +29,9 @@ export default function Budgets() {
   const [budgets, setBudgets] = useState([])
   const [categories, setCategories] = useState([])
   const [spending, setSpending] = useState({})
-  const [formCatId, setFormCatId] = useState('')
-  const [formLabel, setFormLabel] = useState('')
-  const [formAmount, setFormAmount] = useState('')
+  // Persisted "Add a Budget Line Item" draft (category + label + amount).
+  const budgetDraft = useDraft('draft_budget', { category_id: '', label: '', amount: '' })
+  const form = budgetDraft.value
   const [copyMsg, setCopyMsg] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [itemDrafts, setItemDrafts] = useState({})
@@ -66,9 +68,9 @@ export default function Budgets() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    const categoryId = parseInt(formCatId)
-    const label = formLabel.trim()
-    const amount = parseFloat(formAmount)
+    const categoryId = parseInt(form.category_id)
+    const label = form.label.trim()
+    const amount = parseFloat(form.amount)
     if (!categoryId || !label || Number.isNaN(amount)) return
 
     // One budget per category per month: find the existing one or create it.
@@ -87,9 +89,7 @@ export default function Budgets() {
     }
     await addBudgetLineItem(budget.id, { label, amount })
 
-    setFormCatId('')
-    setFormLabel('')
-    setFormAmount('')
+    budgetDraft.reset()
     fetchData()
   }
 
@@ -225,15 +225,18 @@ export default function Budgets() {
 
       {/* Budget line-item form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-        <h2 className="text-sm font-semibold text-gray-900 mb-1">Add a Budget Line Item</h2>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-sm font-semibold text-gray-900">Add a Budget Line Item</h2>
+          <DraftRestored show={budgetDraft.restored} />
+        </div>
         <p className="text-xs text-gray-500 mb-3">
           Saving adds the line item to that category's budget for the month — same category twice just appends.
         </p>
         <div className="flex flex-col sm:flex-row gap-3">
           <select
             required
-            value={formCatId}
-            onChange={(e) => setFormCatId(e.target.value)}
+            value={form.category_id}
+            onChange={(e) => budgetDraft.setValue({ ...form, category_id: e.target.value })}
             className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
           >
             <option value="">Select category</option>
@@ -244,8 +247,8 @@ export default function Budgets() {
           <input
             type="text"
             required
-            value={formLabel}
-            onChange={(e) => setFormLabel(e.target.value)}
+            value={form.label}
+            onChange={(e) => budgetDraft.setValue({ ...form, label: e.target.value })}
             placeholder="Label (e.g. Electric)"
             className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
           />
@@ -253,8 +256,8 @@ export default function Budgets() {
             type="number"
             step="0.01"
             required
-            value={formAmount}
-            onChange={(e) => setFormAmount(e.target.value)}
+            value={form.amount}
+            onChange={(e) => budgetDraft.setValue({ ...form, amount: e.target.value })}
             placeholder="Amount"
             className="w-full sm:w-32 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
           />

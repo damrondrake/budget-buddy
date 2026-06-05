@@ -8,8 +8,10 @@ import EmptyState from '../components/EmptyState'
 import IconButton from '../components/ui/IconButton'
 import PageError from '../components/PageError'
 import { CardsSkeleton } from '../components/Skeletons'
+import DraftRestored from '../components/DraftRestored'
 import { formatMoney, formatDate } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
+import useDraft from '../hooks/useDraft'
 
 const PALETTE = [
   '#22C55E', '#6366F1', '#EC4899', '#F59E0B', '#0EA5E9',
@@ -30,8 +32,8 @@ function pct(saved, target) {
 export default function Savings() {
   const { users } = useUsers()
   const [goals, setGoals] = useState([])
-  const [formName, setFormName] = useState('')
-  const [formColor, setFormColor] = useState(PALETTE[0])
+  // Persisted "Create a Savings Goal" draft (name + color).
+  const goalDraft = useDraft('draft_savings_goal', { name: '', color: PALETTE[0] })
   const [allocDrafts, setAllocDrafts] = useState({})
   // Transaction logs keyed by goal id; presence of a key means the log is open.
   const [logs, setLogs] = useState({})
@@ -40,10 +42,48 @@ export default function Savings() {
   const [txnForm, setTxnForm] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  // Per-goal deposit/withdrawal draft — the key includes the goal id so each
+  // goal keeps its own in-progress transaction.
+  const txnDraft = useDraft(txnGoal ? `draft_savings_${txnGoal.id}` : 'draft_savings_pending', null)
+  const [txnDraftRestored, setTxnDraftRestored] = useState(false)
 
   useEffect(() => {
     fetchGoals()
   }, [])
+
+  // When a deposit/withdraw modal opens, restore that goal's draft (or seed a
+  // fresh form). Runs after txnGoal changes so the draft key is up to date.
+  useEffect(() => {
+    if (!txnGoal) {
+      setTxnDraftRestored(false)
+      return
+    }
+    const saved = txnDraft.load()
+    if (saved) {
+      setTxnForm(saved)
+      setTxnDraftRestored(true)
+    } else {
+      setTxnForm({
+        amount: '',
+        type: 'deposit',
+        allocation_id: '',
+        note: '',
+        date: todayStr(),
+        paid_by: String(users[0]?.id ?? ''),
+      })
+      setTxnDraftRestored(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [txnGoal])
+
+  // Persist the open modal's form as the user types.
+  useEffect(() => {
+    if (!txnGoal || !txnForm) return
+    const dirty = String(txnForm.amount).trim() !== '' || (txnForm.note || '').trim() !== ''
+    if (dirty) txnDraft.save(txnForm)
+    else txnDraft.clear()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [txnForm, txnGoal])
 
   function fetchGoals() {
     setLoading(true)
@@ -56,11 +96,10 @@ export default function Savings() {
 
   async function handleCreateGoal(e) {
     e.preventDefault()
-    const name = formName.trim()
+    const name = goalDraft.value.name.trim()
     if (!name) return
-    await createSavingsGoal({ name, color: formColor })
-    setFormName('')
-    setFormColor(PALETTE[0])
+    await createSavingsGoal({ name, color: goalDraft.value.color })
+    goalDraft.reset()
     fetchGoals()
   }
 
@@ -100,14 +139,7 @@ export default function Savings() {
   }
 
   function openTxnModal(goal) {
-    setTxnForm({
-      amount: '',
-      type: 'deposit',
-      allocation_id: '',
-      note: '',
-      date: todayStr(),
-      paid_by: String(users[0]?.id ?? ''),
-    })
+    // The effect on `txnGoal` seeds the form (restoring a draft if one exists).
     setTxnGoal(goal)
   }
 
@@ -127,6 +159,8 @@ export default function Savings() {
     }
     await addSavingsTransaction(txnGoal.id, payload)
     const goalId = txnGoal.id
+    txnDraft.clear()
+    setTxnDraftRestored(false)
     setTxnGoal(null)
     setTxnForm(null)
     fetchGoals()
@@ -164,13 +198,16 @@ export default function Savings() {
 
       {/* Create goal form */}
       <form onSubmit={handleCreateGoal} className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Create a Savings Goal</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-900">Create a Savings Goal</h2>
+          <DraftRestored show={goalDraft.restored} />
+        </div>
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
           <input
             type="text"
             required
-            value={formName}
-            onChange={(e) => setFormName(e.target.value)}
+            value={goalDraft.value.name}
+            onChange={(e) => goalDraft.setValue({ ...goalDraft.value, name: e.target.value })}
             placeholder="Goal name (e.g. Christmas Savings)"
             className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
           />
@@ -179,9 +216,9 @@ export default function Savings() {
               <button
                 key={c}
                 type="button"
-                onClick={() => setFormColor(c)}
+                onClick={() => goalDraft.setValue({ ...goalDraft.value, color: c })}
                 className={`w-6 h-6 rounded-full transition-transform ${
-                  formColor === c ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : ''
+                  goalDraft.value.color === c ? 'ring-2 ring-offset-2 ring-gray-400 scale-110' : ''
                 }`}
                 style={{ backgroundColor: c }}
                 aria-label={`Select color ${c}`}
@@ -386,9 +423,12 @@ export default function Savings() {
             className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">
-              {txnGoal.name} — Deposit / Withdraw
-            </h3>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h3 className="text-sm font-semibold text-gray-900">
+                {txnGoal.name} — Deposit / Withdraw
+              </h3>
+              <DraftRestored show={txnDraftRestored} />
+            </div>
 
             <div className="space-y-3">
               {/* Type toggle */}

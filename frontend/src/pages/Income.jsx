@@ -5,8 +5,10 @@ import IconButton from '../components/ui/IconButton'
 import EmptyState, { IncomeEmptyIcon } from '../components/EmptyState'
 import PageError from '../components/PageError'
 import { ListRowsSkeleton } from '../components/Skeletons'
+import DraftRestored from '../components/DraftRestored'
 import { formatMoney } from '../utils/format'
 import { useUsers } from '../context/UsersContext'
+import useDraft from '../hooks/useDraft'
 
 export default function Income() {
   const now = new Date()
@@ -19,7 +21,10 @@ export default function Income() {
   const [editingId, setEditingId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [draftRestored, setDraftRestored] = useState(false)
   const { users } = useUsers()
+  // Persisted "Add Income" draft (amount + source + user).
+  const incomeDraft = useDraft('draft_income', null)
 
   const userMap = Object.fromEntries(users.map((u) => [u.id, u.name]))
 
@@ -33,6 +38,27 @@ export default function Income() {
       setFormUser(users[0].id)
     }
   }, [users, formUser])
+
+  // Restore a saved draft once on mount.
+  useEffect(() => {
+    const saved = incomeDraft.load()
+    if (saved) {
+      if (saved.amount != null) setFormAmount(saved.amount)
+      if (saved.source != null) setFormSource(saved.source)
+      if (saved.user) setFormUser(saved.user)
+      setDraftRestored(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Persist as the user types (add mode only — never while editing an entry).
+  useEffect(() => {
+    if (editingId) return
+    const hasContent = String(formAmount).trim() !== '' || String(formSource).trim() !== ''
+    if (hasContent) incomeDraft.save({ amount: formAmount, source: formSource, user: formUser })
+    else incomeDraft.clear()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formAmount, formSource, formUser, editingId])
 
   function fetchIncome() {
     setLoading(true)
@@ -71,6 +97,8 @@ export default function Income() {
     setFormSource('')
     setEditingId(null)
     if (users.length > 0) setFormUser(users[0].id)
+    incomeDraft.clear()
+    setDraftRestored(false)
   }
 
   function startEdit(entry) {
@@ -78,6 +106,7 @@ export default function Income() {
     setFormAmount(entry.amount)
     setFormSource(entry.source)
     setFormUser(entry.user_id)
+    setDraftRestored(false)
   }
 
   function handleDelete(id) {
@@ -119,9 +148,12 @@ export default function Income() {
 
       {/* Add/edit income form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">
-          {editingId ? 'Edit Income' : 'Add Income'}
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-900">
+            {editingId ? 'Edit Income' : 'Add Income'}
+          </h2>
+          <DraftRestored show={!editingId && draftRestored} />
+        </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="number"
