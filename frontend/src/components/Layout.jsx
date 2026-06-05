@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { getCumulative } from '../api/client'
 import { formatMoney } from '../utils/format'
 import BudgetBuddyLogo from './BudgetBuddyLogo'
+import WhatsNew from './WhatsNew'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: DashboardIcon },
@@ -17,7 +18,7 @@ const navItems = [
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [cumulative, setCumulative] = useState(null)
-  const { account, logout } = useAuth()
+  const { account, logout, changelog, dismissChangelog } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -162,6 +163,9 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* What's New — only ever rendered inside the authenticated app shell. */}
+      <WhatsNew changelog={changelog} onDismiss={dismissChangelog} />
     </div>
   )
 }

@@ -1,11 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import api, { applyDueRecurring } from '../api/client'
+import api, { applyDueRecurring, getLatestChangelog } from '../api/client'
 import { showToast } from '../components/Toast'
 
 const AuthContext = createContext()
 
 const TOKEN_KEY = 'budgetbuddy_token'
 const ACCOUNT_KEY = 'budgetbuddy_account'
+const LAST_SEEN_VERSION_KEY = 'last_seen_version'
 
 function readStoredAccount() {
   const raw = localStorage.getItem(ACCOUNT_KEY)
@@ -17,10 +18,28 @@ function readStoredAccount() {
   }
 }
 
+// True if `latest` is a newer semver than `seen` (or the user has never seen one).
+function isNewerVersion(latest, seen) {
+  if (!latest) return false
+  if (!seen) return true
+  const a = String(latest).split('.').map((n) => parseInt(n, 10) || 0)
+  const b = String(seen).split('.').map((n) => parseInt(n, 10) || 0)
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const x = a[i] || 0
+    const y = b[i] || 0
+    if (x > y) return true
+    if (x < y) return false
+  }
+  return false
+}
+
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY))
   const [account, setAccount] = useState(readStoredAccount)
   const [loading, setLoading] = useState(Boolean(localStorage.getItem(TOKEN_KEY)))
+  // The "What's New" entry to show, if the latest version is newer than what
+  // this user last saw. Rendered by Layout so it never blocks the login screen.
+  const [changelog, setChangelog] = useState(null)
 
   const persistSession = useCallback((nextToken, nextAccount) => {
     if (nextToken) {
@@ -38,8 +57,17 @@ export function AuthProvider({ children }) {
   }, [])
 
   const logout = useCallback(() => {
+    setChangelog(null)
     persistSession(null, null)
   }, [persistSession])
+
+  // Dismiss the What's New modal and remember this version so it won't reappear.
+  const dismissChangelog = useCallback(() => {
+    setChangelog((current) => {
+      if (current) localStorage.setItem(LAST_SEEN_VERSION_KEY, current.version)
+      return null
+    })
+  }, [])
 
   useEffect(() => {
     if (!token) {
@@ -68,6 +96,17 @@ export function AuthProvider({ children }) {
               showToast(
                 `${applied} recurring transaction${applied === 1 ? '' : 's'} added for ${label}`
               )
+            }
+          })
+          .catch(() => {})
+
+        // Surface the latest "What's New" entry if the user hasn't seen it yet.
+        getLatestChangelog()
+          .then((res) => {
+            if (cancelled) return
+            const latest = res.data
+            if (latest && isNewerVersion(latest.version, localStorage.getItem(LAST_SEEN_VERSION_KEY))) {
+              setChangelog(latest)
             }
           })
           .catch(() => {})
@@ -134,6 +173,8 @@ export function AuthProvider({ children }) {
         register,
         setSessionToken,
         logout,
+        changelog,
+        dismissChangelog,
       }}
     >
       {children}

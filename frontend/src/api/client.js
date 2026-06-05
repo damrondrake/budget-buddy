@@ -97,4 +97,7 @@ export const getCumulative = () => api.get('/cumulative')
 // Trends
 export const getTrends = (months = 6) => api.get('/trends', { params: { months } })
 
+// Changelog ("What's New")
+export const getLatestChangelog = () => api.get('/changelog/latest')
+
 export default api
