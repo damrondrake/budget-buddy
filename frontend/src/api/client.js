@@ -63,6 +63,16 @@ export const deleteSavingsAllocation = (goalId, allocId) => api.delete(`/savings
 export const addSavingsTransaction = (goalId, data) => api.post(`/savings/${goalId}/transactions`, data)
 export const getSavingsTransactions = (goalId) => api.get(`/savings/${goalId}/transactions`)
 
+// Shared Financial Goals — couple-focused goals both partners contribute toward.
+export const getSharedGoals = () => api.get('/shared-goals')
+export const createSharedGoal = (data) => api.post('/shared-goals', data)
+export const updateSharedGoal = (id, data) => api.put(`/shared-goals/${id}`, data)
+export const deleteSharedGoal = (id) => api.delete(`/shared-goals/${id}`)
+export const contributeToGoal = (id, data) => api.post(`/shared-goals/${id}/contribute`, data)
+export const getGoalContributions = (id) => api.get(`/shared-goals/${id}/contributions`)
+export const deleteGoalContribution = (id, contribId) =>
+  api.delete(`/shared-goals/${id}/contributions/${contribId}`)
+
 // Categories
 export const getCategories = () => api.get('/categories')
 export const createCategory = (data) => api.post('/categories', data)

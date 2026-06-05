@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
 import Budgets from './pages/Budgets'
 import Savings from './pages/Savings'
+import Goals from './pages/Goals'
 import Income from './pages/Income'
 import Settings from './pages/Settings'
 import Billing from './pages/Billing'
@@ -93,6 +94,7 @@ export default function App() {
             <Route path="/transactions" element={<Guarded><Transactions /></Guarded>} />
             <Route path="/budgets" element={<Guarded><Budgets /></Guarded>} />
             <Route path="/savings" element={<Guarded><Savings /></Guarded>} />
+            <Route path="/goals" element={<Guarded><Goals /></Guarded>} />
             <Route path="/income" element={<Guarded><Income /></Guarded>} />
             <Route path="/trends" element={<Guarded><Trends /></Guarded>} />
             <Route path="/billing" element={<Guarded><Billing /></Guarded>} />
