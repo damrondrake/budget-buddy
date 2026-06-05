@@ -37,8 +37,8 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY))
   const [account, setAccount] = useState(readStoredAccount)
   const [loading, setLoading] = useState(Boolean(localStorage.getItem(TOKEN_KEY)))
-  // The "What's New" entry to show, if the latest version is newer than what
-  // this user last saw. Rendered by Layout so it never blocks the login screen.
+  // The unseen "What's New" entries to show (an array, newest first), or null.
+  // Rendered by Layout so it never blocks the login screen.
   const [changelog, setChangelog] = useState(null)
 
   const persistSession = useCallback((nextToken, nextAccount) => {
@@ -61,10 +61,17 @@ export function AuthProvider({ children }) {
     persistSession(null, null)
   }, [persistSession])
 
-  // Dismiss the What's New modal and remember this version so it won't reappear.
+  // Dismiss the What's New modal and remember the newest version shown, so none
+  // of these entries reappear next time.
   const dismissChangelog = useCallback(() => {
     setChangelog((current) => {
-      if (current) localStorage.setItem(LAST_SEEN_VERSION_KEY, current.version)
+      if (current && current.length > 0) {
+        const newest = current.reduce(
+          (max, entry) => (isNewerVersion(entry.version, max) ? entry.version : max),
+          current[0].version,
+        )
+        localStorage.setItem(LAST_SEEN_VERSION_KEY, newest)
+      }
       return null
     })
   }, [])
@@ -100,14 +107,16 @@ export function AuthProvider({ children }) {
           })
           .catch(() => {})
 
-        // Surface the latest "What's New" entry if the user hasn't seen it yet.
-        getLatestChangelog()
+        // Show only the updates this user hasn't seen. Returning users pass
+        // their last_seen_version and get back just the newer entries; new users
+        // (no last_seen_version) get the single latest entry.
+        const lastSeen = localStorage.getItem(LAST_SEEN_VERSION_KEY)
+        getLatestChangelog(lastSeen)
           .then((res) => {
             if (cancelled) return
-            const latest = res.data
-            if (latest && isNewerVersion(latest.version, localStorage.getItem(LAST_SEEN_VERSION_KEY))) {
-              setChangelog(latest)
-            }
+            const data = res.data
+            const entries = data == null ? [] : Array.isArray(data) ? data : [data]
+            if (entries.length > 0) setChangelog(entries)
           })
           .catch(() => {})
       })

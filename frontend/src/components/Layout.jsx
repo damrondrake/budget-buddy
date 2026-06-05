@@ -165,7 +165,7 @@ export default function Layout() {
       </div>
 
       {/* What's New — only ever rendered inside the authenticated app shell. */}
-      <WhatsNew changelog={changelog} onDismiss={dismissChangelog} />
+      <WhatsNew entries={changelog} onDismiss={dismissChangelog} />
     </div>
   )
 }

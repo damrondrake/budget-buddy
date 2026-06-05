@@ -97,7 +97,9 @@ export const getCumulative = () => api.get('/cumulative')
 // Trends
 export const getTrends = (months = 6) => api.get('/trends', { params: { months } })
 
-// Changelog ("What's New")
-export const getLatestChangelog = () => api.get('/changelog/latest')
+// Changelog ("What's New"). With sinceVersion, returns the list of entries
+// newer than it; without it, the single latest entry (for new users).
+export const getLatestChangelog = (sinceVersion) =>
+  api.get('/changelog/latest', { params: sinceVersion ? { since_version: sinceVersion } : {} })
 
 export default api
