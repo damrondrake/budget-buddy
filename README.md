@@ -69,6 +69,30 @@ Works on desktop and mobile.
 
 ---
 
+## ⚙️ Configuration
+
+The backend service on **Railway** reads the following environment variables. Set
+these in the Railway project (backend service → **Variables**):
+
+| Variable | Purpose |
+| --- | --- |
+| `SECRET_KEY` | JWT signing secret |
+| `DATABASE_URL` | PostgreSQL connection string (injected by Railway) |
+| `CORS_ORIGINS` | Comma-separated list of allowed frontend origins |
+| `RESEND_API_KEY` | Transactional email (password reset + partner invites) |
+| `SENTRY_DSN` | Error tracking (optional) |
+| `STRIPE_SECRET_KEY` | Stripe server-side secret key (`sk_live_…` / `sk_test_…`) |
+| `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (`pk_live_…` / `pk_test_…`) |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret for the billing webhook (`whsec_…`) |
+
+The frontend (Vercel) additionally uses `VITE_API_URL`, `VITE_SENTRY_DSN`, and
+`VITE_STRIPE_PUBLISHABLE_KEY`. Stripe keys are only required to enable billing —
+when they're unset, billing endpoints return `503` and every feature stays
+available to all users. **No payment card data is ever stored by BudgetBuddy;
+Stripe handles all of it.**
+
+---
+
 ## 🗺️ Roadmap
 
 Planned improvements for BudgetBuddy:

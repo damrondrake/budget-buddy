@@ -10,6 +10,7 @@ import Budgets from './pages/Budgets'
 import Savings from './pages/Savings'
 import Income from './pages/Income'
 import Settings from './pages/Settings'
+import Billing from './pages/Billing'
 import Trends from './pages/Trends'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -94,6 +95,7 @@ export default function App() {
             <Route path="/savings" element={<Guarded><Savings /></Guarded>} />
             <Route path="/income" element={<Guarded><Income /></Guarded>} />
             <Route path="/trends" element={<Guarded><Trends /></Guarded>} />
+            <Route path="/billing" element={<Guarded><Billing /></Guarded>} />
             <Route path="/settings" element={<Guarded><Settings /></Guarded>} />
           </Route>
           {/* Catch-all: custom 404 page. */}

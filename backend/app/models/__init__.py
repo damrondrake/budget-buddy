@@ -9,10 +9,12 @@ from app.models.transaction import Transaction
 from app.models.income import Income
 from app.models.savings import SavingsGoal, SavingsAllocation, SavingsTransaction
 from app.models.changelog import Changelog
+from app.models.subscription import Subscription
 
 __all__ = [
     "Account", "AccountMember", "User", "Category", "Budget", "BudgetLineItem",
     "RecurringTransaction", "Transaction", "Income",
     "SavingsGoal", "SavingsAllocation", "SavingsTransaction",
     "Changelog",
+    "Subscription",
 ]

@@ -97,6 +97,12 @@ export const getCumulative = () => api.get('/cumulative')
 // Trends
 export const getTrends = (months = 6) => api.get('/trends', { params: { months } })
 
+// Billing (Stripe). Subscription status plus Checkout/Portal session creation.
+// The create-* calls return a hosted Stripe URL to redirect the browser to.
+export const getSubscription = () => api.get('/billing/subscription')
+export const createCheckout = () => api.post('/billing/create-checkout')
+export const createPortal = () => api.post('/billing/create-portal')
+
 // Changelog ("What's New"). With sinceVersion, returns the list of entries
 // newer than it; without it, the single latest entry (for new users).
 export const getLatestChangelog = (sinceVersion) =>

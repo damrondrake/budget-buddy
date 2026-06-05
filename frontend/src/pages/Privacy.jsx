@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import BudgetBuddyLogo from '../components/BudgetBuddyLogo'
 
-const LAST_UPDATED = 'June 4, 2026'
+const LAST_UPDATED = 'June 5, 2026'
 const CONTACT_EMAIL = 'privacy@budget-buddy-app.com'
 
 function Section({ title, children }) {
@@ -44,8 +44,17 @@ export default function Privacy() {
               <li><span className="font-medium text-gray-700">Savings data</span> — your savings goals, allocations, and deposit/withdrawal history.</li>
             </ul>
             <p>
-              We do <span className="font-medium text-gray-700">not</span> collect bank credentials, connect
-              to your financial institutions, or process payments. All financial data is entered manually by you.
+              We do <span className="font-medium text-gray-700">not</span> collect bank credentials or connect
+              to your financial institutions. All financial data shown in the app is entered manually by you.
+            </p>
+            <p>
+              <span className="font-medium text-gray-700">Payments.</span> If you choose to subscribe to a paid
+              plan, payments are processed by{' '}
+              <span className="font-medium text-gray-700">Stripe</span>, a third-party payment processor. Your
+              card details are entered directly on Stripe's secure pages and are{' '}
+              <span className="font-medium text-gray-700">never seen by or stored on our servers</span>. We
+              retain only Stripe's reference identifiers (such as a customer ID) needed to manage your
+              subscription.
             </p>
           </Section>
 
@@ -72,10 +81,12 @@ export default function Privacy() {
             </p>
             <p>
               To keep the service running reliably, we use a small number of service providers that process
-              data strictly on our behalf. In particular, we use{' '}
+              data strictly on our behalf. We use{' '}
               <span className="font-medium text-gray-700">Sentry</span> for error tracking, which may collect
-              IP addresses and request data to help us diagnose bugs. These providers are not permitted to use
-              your data for any purpose other than operating the service.
+              IP addresses and request data to help us diagnose bugs, and{' '}
+              <span className="font-medium text-gray-700">Stripe</span> to process subscription payments
+              (Stripe handles your card details on its own systems — we never receive them). These providers
+              are not permitted to use your data for any purpose other than operating the service.
             </p>
           </Section>
 

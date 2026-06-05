@@ -16,6 +16,7 @@
     "@base-ui/react": "^1.5.0",
     "@fontsource-variable/geist": "^5.2.9",
     "@sentry/react": "^10.56.0",
+    "@stripe/stripe-js": "^9.7.0",
     "@tailwindcss/vite": "^4.3.0",
     "axios": "^1.16.1",
     "class-variance-authority": "^0.7.1",

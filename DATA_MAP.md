@@ -1,6 +1,6 @@
 # BudgetBuddy — Data Map
 
-_Last updated: June 4, 2026_
+_Last updated: June 5, 2026_
 
 This document inventories the personal data BudgetBuddy stores, where it lives, and
 who can access it. It supports our GDPR/CCPA obligations and should be kept current
@@ -19,12 +19,18 @@ as the schema evolves.
 | Transport | HTTPS/TLS in transit |
 | Auth tokens | JWT (HS256), stored client-side in browser `localStorage` only |
 | Error tracking | [Sentry](https://sentry.io); may collect IP addresses + request data for bug diagnostics |
+| Payments | [Stripe](https://stripe.com); processes subscription payments. **No card data ever touches our servers** |
 
-We do **not** integrate with banks, payment processors, or third-party analytics/ad
-networks. All financial data is entered manually by users. No personal data is sold or
-shared with third parties for advertising or marketing. We use **Sentry** for error
-tracking, which may collect IP addresses and request data to help diagnose bugs; it
-processes this data strictly on our behalf to operate the service.
+We do **not** integrate with banks or third-party analytics/ad networks, and we do
+**not** collect or store any payment card data. All financial data shown in the app is
+entered manually by users. Subscription payments are handled by **Stripe**, a PCI-DSS
+compliant payment processor: card numbers, CVCs, and bank details are entered on
+Stripe-hosted pages (Checkout / Customer Portal) and are never seen by or stored on our
+servers — we retain only Stripe's opaque reference IDs (see `subscriptions` below). No
+personal data is sold or shared with third parties for advertising or marketing. We also
+use **Sentry** for error tracking, which may collect IP addresses and request data to
+help diagnose bugs; these providers process data strictly on our behalf to operate the
+service.
 
 ## Data Subjects
 
@@ -177,6 +183,25 @@ Deposits/withdrawals against a goal. **Financial.**
 | `note` | string | 🟠 | Free-text note |
 | `date` | date | 🟠 | Date |
 
+### `subscriptions`
+Billing record linking an account to its Stripe customer/subscription. **Contains
+no payment card data** — only Stripe's opaque reference IDs and the resolved plan.
+
+| Column | Type | Classification | Notes |
+| --- | --- | --- | --- |
+| `id` | int | 🟢 | Primary key |
+| `account_id` | int | 🟢 | Owning account |
+| `stripe_customer_id` | string | 🟢 | Stripe reference ID (e.g. `cus_…`) — not PII, no card data |
+| `stripe_subscription_id` | string | 🟢 | Stripe reference ID (e.g. `sub_…`) — not PII, no card data |
+| `plan` | string | 🟢 | `free` or `pro` |
+| `status` | string | 🟢 | `active`, `canceled`, or `past_due` |
+| `current_period_end` | datetime | 🟢 | When the current paid period ends |
+| `created_at` | datetime | 🟢 | Timestamp |
+
+> **No card data is ever stored.** Card numbers, CVCs, and bank details are entered on
+> Stripe-hosted pages and handled entirely by Stripe. BudgetBuddy stores only the Stripe
+> reference IDs above, which Stripe uses to look up the customer/subscription on its side.
+
 ## Who Has Access
 
 | Party | Access | Scope |
@@ -186,6 +211,7 @@ Deposits/withdrawals against a goal. **Financial.**
 | Application | Programmatic | Enforces per-request scoping so an account can only read/write its own `account_id` rows |
 | Operators/Developers | Infrastructure | Railway project members with database access, for maintenance only |
 | Sentry (sub-processor) | Error events only | Receives IP addresses + request data from crashes, strictly to diagnose bugs |
+| Stripe (sub-processor) | Payment processing | Handles all card data on its own systems; we send only account email + Stripe reference IDs |
 | Third parties (advertising/sale) | **None** | Data is never sold or shared for advertising or marketing |
 
 Every data table carries an `account_id`, and all API requests are scoped to the
