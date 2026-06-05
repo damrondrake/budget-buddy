@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import {
   updateUser, getCategories, createCategory, deleteCategory, invitePartner, deleteAccount,
   getStartingBalance, setStartingBalance, deleteStartingBalance,
@@ -419,6 +419,54 @@ export default function Settings() {
         >
           Delete My Account
         </button>
+      </section>
+
+      {/*
+        PRIORITY SUPPORT — Gmail filter setup (developer note, not user-facing)
+
+        To make the "priority support" promise real, route inbound support mail
+        in Gmail so it stands out from everything else:
+          1. Gmail → Settings (gear) → "See all settings" → "Filters and Blocked
+             Addresses" → "Create a new filter".
+          2. In the "To" field, enter: support@budget-buddy-app.com
+          3. Click "Create filter".
+          4. Check "Apply the label" → "New label…" → name it "BudgetBuddy Support".
+          5. Also check "Star it" so these threads are highlighted in the inbox.
+          6. Click "Create filter".
+        Result: every email to support@budget-buddy-app.com is auto-labeled
+        "BudgetBuddy Support" and starred, so support requests are easy to spot
+        and answer first.
+      */}
+
+      {/* Help & Support */}
+      <section className="bg-white rounded-xl border border-gray-200 p-5 mt-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Help &amp; Support</h2>
+        <div className="space-y-2 text-sm text-gray-600">
+          <p>
+            Need help? Contact us at{' '}
+            <a
+              href="mailto:support@budget-buddy-app.com"
+              className="text-emerald-600 font-medium hover:underline"
+            >
+              support@budget-buddy-app.com
+            </a>
+          </p>
+          <p>
+            Privacy questions? Contact us at{' '}
+            <a
+              href="mailto:privacy@budget-buddy-app.com"
+              className="text-emerald-600 font-medium hover:underline"
+            >
+              privacy@budget-buddy-app.com
+            </a>
+          </p>
+          <p>
+            <Link to="/privacy" className="text-emerald-600 font-medium hover:underline">
+              Privacy Policy
+            </Link>
+          </p>
+        </div>
+        <p className="mt-4 text-xs text-gray-400">BudgetBuddy v1.3.0</p>
       </section>
 
       {/* Delete account confirmation modal */}

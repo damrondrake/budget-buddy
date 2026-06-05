@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import BudgetBuddyLogo from '../components/BudgetBuddyLogo'
+import AuthFooter from '../components/AuthFooter'
 
 export default function Login() {
   const { login } = useAuth()
@@ -90,9 +91,7 @@ export default function Login() {
             </Link>
           </p>
         </div>
-        <p className="text-center text-xs text-gray-400 mt-6">
-          <Link to="/privacy" className="hover:text-gray-600 hover:underline">Privacy Policy</Link>
-        </p>
+        <AuthFooter />
       </div>
     </div>
   )
