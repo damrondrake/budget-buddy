@@ -5,6 +5,7 @@ import { getCumulative } from '../api/client'
 import { formatMoney } from '../utils/format'
 import BudgetBuddyLogo from './BudgetBuddyLogo'
 import WhatsNew from './WhatsNew'
+import Onboarding from './Onboarding'
 import usePolling from '../hooks/usePolling'
 
 const navItems = [
@@ -21,6 +22,8 @@ const navItems = [
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [cumulative, setCumulative] = useState(null)
+  // While the onboarding modal is active (or still deciding), hold back What's New.
+  const [onboardingActive, setOnboardingActive] = useState(false)
   const { account, logout, changelog, dismissChangelog } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -175,8 +178,12 @@ export default function Layout() {
         </main>
       </div>
 
-      {/* What's New — only ever rendered inside the authenticated app shell. */}
-      <WhatsNew entries={changelog} onDismiss={dismissChangelog} />
+      {/* First-run onboarding for brand-new accounts. */}
+      <Onboarding onActiveChange={setOnboardingActive} />
+
+      {/* What's New — only ever rendered inside the authenticated app shell, and
+          held back while onboarding is active so the two never overlap. */}
+      <WhatsNew entries={onboardingActive ? null : changelog} onDismiss={dismissChangelog} />
     </div>
   )
 }
