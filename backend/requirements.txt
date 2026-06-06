@@ -12,4 +12,3 @@ resend==2.5.1
 slowapi==0.1.9
 sentry-sdk[fastapi]==2.61.1
 stripe==15.2.0
-anthropic==0.106.0

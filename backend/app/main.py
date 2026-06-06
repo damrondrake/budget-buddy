@@ -15,7 +15,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.email import get_resend_api_key, get_frontend_url
-from app.routers import auth, transactions, budgets, categories, income, summary, users, recurring, trends, savings, account, changelog, billing, settlements, shared_goals, health, insights
+from app.routers import auth, transactions, budgets, categories, income, summary, users, recurring, trends, savings, account, changelog, billing, settlements, shared_goals, health
 from app.security import limiter
 
 # override=False so platform-injected env vars (Railway) always win over any .env file.
@@ -159,7 +159,6 @@ app.include_router(billing.router)
 app.include_router(settlements.router)
 app.include_router(shared_goals.router)
 app.include_router(health.router)
-app.include_router(insights.router)
 
 
 @app.get("/api/health")

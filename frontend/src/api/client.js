@@ -117,10 +117,6 @@ export const getHealthScore = (params) => api.get('/health-score', { params })
 export const getHealthScoreHistory = (months = 6) =>
   api.get('/health-score/history', { params: { months } })
 
-// AI spending insights (Anthropic-powered). `refresh` bypasses the 24h cache.
-export const getInsights = ({ month, year, refresh } = {}) =>
-  api.get('/insights', { params: { month, year, ...(refresh ? { refresh: true } : {}) } })
-
 // Billing (Stripe). Subscription status plus Checkout/Portal session creation.
 // The create-* calls return a hosted Stripe URL to redirect the browser to.
 // (Checkout/Portal are wired up server-side but unused while Pro is "Coming

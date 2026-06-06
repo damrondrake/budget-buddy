@@ -84,7 +84,6 @@ these in the Railway project (backend service → **Variables**):
 | `STRIPE_SECRET_KEY` | Stripe server-side secret key (`sk_live_…` / `sk_test_…`) |
 | `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (`pk_live_…` / `pk_test_…`) |
 | `STRIPE_WEBHOOK_SECRET` | Signing secret for the billing webhook (`whsec_…`) |
-| `ANTHROPIC_API_KEY` | Anthropic API key for AI spending insights (from [console.anthropic.com](https://console.anthropic.com) → API Keys) |
 
 The frontend (Vercel) additionally uses `VITE_API_URL`, `VITE_SENTRY_DSN`, and
 `VITE_STRIPE_PUBLISHABLE_KEY`. Stripe keys are only required to enable billing —
