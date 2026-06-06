@@ -13,6 +13,7 @@ from app.models.subscription import Subscription
 from app.models.waitlist import WaitlistEntry
 from app.models.settlement import Settlement
 from app.models.shared_goal import SharedGoal, SharedGoalContribution
+from app.models.insights_cache import InsightsCache
 
 __all__ = [
     "Account", "AccountMember", "User", "Category", "Budget", "BudgetLineItem",
@@ -23,4 +24,5 @@ __all__ = [
     "WaitlistEntry",
     "Settlement",
     "SharedGoal", "SharedGoalContribution",
+    "InsightsCache",
 ]

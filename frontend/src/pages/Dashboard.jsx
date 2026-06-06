@@ -7,6 +7,7 @@ import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
 import PageError from '../components/PageError'
 import SettlementHistory from '../components/SettlementHistory'
 import HealthScoreCard from '../components/HealthScoreCard'
+import AIInsights from '../components/AIInsights'
 import { DashboardSkeleton } from '../components/Skeletons'
 import { formatMoney, formatDateShort } from '../utils/format'
 import { budgetBarColor, isOverBudget } from '../utils/budget'
@@ -236,6 +237,9 @@ export default function Dashboard() {
         <>
           {/* Financial Health Score */}
           {health && <HealthScoreCard data={health} />}
+
+          {/* AI Spending Insights */}
+          <AIInsights month={month} year={year} />
 
           {/* Stat cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
