@@ -37,11 +37,33 @@ router = APIRouter(prefix="/api/insights", tags=["insights"])
 
 _log = logging.getLogger("uvicorn.error")
 
-# User explicitly requested this model. Note: it's the older Sonnet 4 ID
-# (deprecated; current equivalent is claude-sonnet-4-6).
-INSIGHTS_MODEL = "claude-sonnet-4-20250514"
+INSIGHTS_MODEL = "claude-sonnet-4-6"
 CACHE_TTL = timedelta(hours=24)
 VALID_TYPES = {"positive", "warning", "tip", "neutral"}
+
+# Structured-output schema: the model is constrained to return exactly this
+# shape, so the response is guaranteed valid JSON (no fences, no stray prose).
+INSIGHTS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "insights": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "body": {"type": "string"},
+                    "type": {"type": "string", "enum": sorted(VALID_TYPES)},
+                    "icon": {"type": "string"},
+                },
+                "required": ["title", "body", "type", "icon"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["insights"],
+    "additionalProperties": False,
+}
 
 SYSTEM_PROMPT = (
     "You are BudgetBuddy AI, a friendly, encouraging personal finance advisor inside a "
@@ -50,14 +72,14 @@ SYSTEM_PROMPT = (
     "Rules:\n"
     "- Reference real numbers from the data (category names, amounts, percentages). Be concrete, "
     "not generic.\n"
-    "- Each insight is an object with these fields:\n"
+    "- Each insight has these fields:\n"
     "  - \"title\": a short headline (<= 6 words)\n"
     "  - \"body\": 1-2 sentences of plain-English advice or observation\n"
     "  - \"type\": one of \"positive\" (good news), \"warning\" (a problem to address), "
     "\"tip\" (actionable advice), or \"neutral\" (a neutral observation)\n"
     "  - \"icon\": a single relevant emoji\n"
     "- Aim for a mix of types; lead with encouragement where the data supports it.\n"
-    "- Return ONLY a JSON array of these objects. No markdown, no code fences, no surrounding text."
+    "- Return a JSON object with an \"insights\" array of these objects."
 )
 
 
@@ -196,12 +218,27 @@ def _parse_insights(text: str) -> list[Insight]:
     try:
         data = json.loads(cleaned)
     except json.JSONDecodeError:
-        # Last resort: pull out the first [...] block.
-        start, end = cleaned.find("["), cleaned.rfind("]")
-        if start == -1 or end == -1 or end <= start:
-            raise
-        data = json.loads(cleaned[start:end + 1])
+        # Last resort: pull out the first usable {...} wrapper or [...] block.
+        candidates = [
+            cleaned[s:e + 1]
+            for s, e in ((cleaned.find("["), cleaned.rfind("]")), (cleaned.find("{"), cleaned.rfind("}")))
+            if s != -1 and e > s
+        ]
+        for candidate in candidates:
+            try:
+                parsed = json.loads(candidate)
+            except json.JSONDecodeError:
+                continue
+            # Accept a bare array, or an object that carries the insights list.
+            if isinstance(parsed, list) or (isinstance(parsed, dict) and "insights" in parsed):
+                data = parsed
+                break
+        else:
+            raise ValueError("No JSON insights found in response")
 
+    # Structured output returns {"insights": [...]}; also accept a bare array.
+    if isinstance(data, dict):
+        data = data.get("insights", [])
     if not isinstance(data, list):
         raise ValueError("Expected a JSON array of insights")
 
@@ -227,6 +264,8 @@ def _generate(context: dict) -> list[Insight]:
         max_tokens=1500,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": json.dumps(context)}],
+        # Constrain output to the schema — guarantees valid, parseable JSON.
+        output_config={"format": {"type": "json_schema", "schema": INSIGHTS_SCHEMA}},
     )
     text = "".join(b.text for b in message.content if b.type == "text")
     return _parse_insights(text)
