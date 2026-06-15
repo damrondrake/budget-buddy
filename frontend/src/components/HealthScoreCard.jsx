@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 // Ring/bar color by percentage: green 80+, yellow 60-79, orange 40-59, red <40.
 function scoreColor(pct) {
@@ -16,8 +16,59 @@ const SHORT_LABELS = {
   settle_up: 'Settle',
 }
 
+// The five scoring rules, kept here so the "how it's calculated" popover stays
+// in sync with the labels shown on the card. Display-only — the score itself is
+// computed on the backend.
+const SCORING_RULES = [
+  {
+    name: 'Savings Rate',
+    detail: '20 pts if you saved 20%+ of your income this month, scaling down to 0 at 0% saved.',
+  },
+  {
+    name: 'Budget Adherence',
+    detail: '20 pts if every budgeted category is at or under its limit, scaling down proportionally.',
+  },
+  {
+    name: 'Spending Trend',
+    detail: '20 pts if spending is flat or down vs. your 3-month average, scaling to 0 if it’s up 20%+.',
+  },
+  {
+    name: 'Goal Progress',
+    detail: '20 pts for active shared goals with a contribution this month, 10 pts with no recent contribution, 0 pts for no goals.',
+  },
+  {
+    name: 'Settle Up',
+    detail: '20 pts if your couple’s balance is under $10, 10 pts if under $50, 0 pts at $50+.',
+  },
+]
+
 export default function HealthScoreCard({ data }) {
   const [expanded, setExpanded] = useState(false)
+  const [showInfo, setShowInfo] = useState(false)
+  const infoRef = useRef(null)
+
+  // Close the info popover on an outside click or Escape. Only listens while
+  // open. Uses mousedown so it fires before the card's onClick toggle.
+  useEffect(() => {
+    if (!showInfo) return
+    function onPointerDown(e) {
+      if (infoRef.current && !infoRef.current.contains(e.target)) {
+        setShowInfo(false)
+      }
+    }
+    function onKeyDown(e) {
+      if (e.key === 'Escape') setShowInfo(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('touchstart', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('touchstart', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [showInfo])
+
   if (!data) return null
 
   const { score, grade, tip, components } = data
@@ -49,9 +100,58 @@ export default function HealthScoreCard({ data }) {
     >
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900">Financial Health Score</h2>
-        <svg className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
+        <div className="flex items-center gap-1">
+          {/* Info popover — explains how the score is calculated. Sits inside the
+              card (which is itself a click-to-expand button), so every handler
+              here stops propagation to avoid also toggling the breakdown. */}
+          <div className="relative" ref={infoRef}>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowInfo((v) => !v) }}
+              onKeyDown={(e) => e.stopPropagation()}
+              aria-label="How your score is calculated"
+              aria-expanded={showInfo}
+              title="How your score is calculated"
+              className="flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+
+            {showInfo && (
+              <div
+                role="dialog"
+                aria-label="How your score is calculated"
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-0 top-full mt-2 z-20 w-80 max-w-[calc(100vw-2rem)] cursor-default rounded-xl border border-gray-200 bg-white p-4 text-left shadow-lg"
+              >
+                <h3 className="text-sm font-semibold text-gray-900">How Your Score is Calculated</h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  Your score is 0–100, made up of 5 categories worth 20 points each.
+                </p>
+                <ul className="mt-3 space-y-2.5">
+                  {SCORING_RULES.map((rule) => (
+                    <li key={rule.name} className="text-xs leading-relaxed text-gray-600">
+                      <span className="font-semibold text-gray-900">{rule.name}</span>
+                      {' — '}{rule.detail}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-3 border-t border-gray-100 pt-3">
+                  <p className="text-xs text-gray-600">
+                    <span className="font-semibold text-gray-900">Letter Grades:</span>{' '}
+                    A = 90+, B = 80+, C = 70+, D = 60+, F = below 60
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <svg className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row items-center gap-6">
