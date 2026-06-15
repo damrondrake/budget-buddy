@@ -99,6 +99,8 @@ export const applyDueRecurring = () => api.post('/recurring/apply-due')
 // Users
 export const getUsers = () => api.get('/users')
 export const updateUser = (id, data) => api.put(`/users/${id}`, data)
+// Wipe all financial data (keeps account, login, and custom categories).
+export const resetAllData = () => api.delete('/users/reset-data')
 
 // Summary
 export const getSummary = (month, year) => api.get(`/summary/${month}/${year}`)

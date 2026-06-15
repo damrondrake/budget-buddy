@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   updateUser, getCategories, createCategory, deleteCategory, invitePartner, deleteAccount,
-  getStartingBalance, setStartingBalance, deleteStartingBalance,
+  getStartingBalance, setStartingBalance, deleteStartingBalance, resetAllData,
 } from '../api/client'
 import { useUsers } from '../context/UsersContext'
 import { useAuth } from '../context/AuthContext'
+import { showToast } from '../components/Toast'
 import IconButton from '../components/ui/IconButton'
 import { formatMoney } from '../utils/format'
 
@@ -34,6 +35,10 @@ export default function Settings() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
+  // Reset all data (clean slate; keeps account, login, and categories)
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [resetError, setResetError] = useState(null)
   // Starting balance
   const [sbAmount, setSbAmount] = useState('')
   const [sbDate, setSbDate] = useState(todayStr())
@@ -173,6 +178,21 @@ export default function Settings() {
       const detail = err.response?.data?.detail || 'Failed to delete your account. Please try again.'
       setDeleteError(detail)
       setDeleting(false)
+    }
+  }
+
+  async function handleResetData() {
+    setResetError(null)
+    setResetting(true)
+    try {
+      await resetAllData()
+      setShowResetModal(false)
+      showToast('All data has been reset. Starting fresh!')
+      navigate('/')
+    } catch (err) {
+      const detail = err.response?.data?.detail || 'Failed to reset your data. Please try again.'
+      setResetError(detail)
+      setResetting(false)
     }
   }
 
@@ -405,20 +425,41 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* Danger Zone — account deletion (GDPR/CCPA right to erasure) */}
+      {/* Danger Zone — destructive, irreversible actions */}
       <section className="bg-white rounded-xl border border-red-200 p-5 mt-6">
-        <h2 className="text-lg font-semibold text-red-600 mb-1">Danger Zone</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Permanently delete your account and everything in it — transactions, budgets, income,
-          savings, and categories. This cannot be undone.
-        </p>
-        <button
-          type="button"
-          onClick={openDeleteModal}
-          className="inline-flex items-center justify-center min-h-[44px] px-5 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
-        >
-          Delete My Account
-        </button>
+        <h2 className="text-lg font-semibold text-red-600 mb-4">Danger Zone</h2>
+
+        {/* Reset all data — clean slate, keeps account + categories */}
+        <div className="pb-5 mb-5 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900 mb-1">Reset All Data</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Clear all your transactions, budgets, savings, income, goals, and settle-up history for a
+            fresh start. Your account, login, and custom categories are kept. This cannot be undone.
+          </p>
+          <button
+            type="button"
+            onClick={() => { setResetError(null); setShowResetModal(true) }}
+            className="inline-flex items-center justify-center min-h-[44px] px-5 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Reset All Data
+          </button>
+        </div>
+
+        {/* Delete account (GDPR/CCPA right to erasure) */}
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 mb-1">Delete Account</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Permanently delete your account and everything in it — transactions, budgets, income,
+            savings, and categories. This cannot be undone.
+          </p>
+          <button
+            type="button"
+            onClick={openDeleteModal}
+            className="inline-flex items-center justify-center min-h-[44px] px-5 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Delete My Account
+          </button>
+        </div>
       </section>
 
       {/*
@@ -468,6 +509,66 @@ export default function Settings() {
         </div>
         <p className="mt-4 text-xs text-gray-400">BudgetBuddy v1.3.0</p>
       </section>
+
+      {/* Reset all data confirmation modal */}
+      {showResetModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm p-4"
+          onClick={() => !resetting && setShowResetModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl w-full max-w-md p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Reset All Data?</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              This will permanently delete the following. This action{' '}
+              <span className="font-semibold text-red-600">cannot be undone</span>.
+            </p>
+            <div className="rounded-lg bg-red-50 border border-red-100 p-3 mb-3">
+              <p className="text-xs font-semibold text-red-700 mb-1.5">Will be deleted</p>
+              <ul className="text-sm text-gray-700 space-y-0.5 list-disc list-inside">
+                <li>All transactions</li>
+                <li>All budgets and budget line items</li>
+                <li>All savings goals</li>
+                <li>All recurring transactions</li>
+                <li>All income entries</li>
+                <li>All shared goals and contributions</li>
+                <li>All settle-up history</li>
+              </ul>
+            </div>
+            <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3 mb-4">
+              <p className="text-xs font-semibold text-emerald-700 mb-1.5">Will NOT be deleted</p>
+              <ul className="text-sm text-gray-700 space-y-0.5 list-disc list-inside">
+                <li>Your account and login</li>
+                <li>Custom categories</li>
+                <li>Partner connections</li>
+              </ul>
+            </div>
+            {resetError && (
+              <p className="text-sm text-red-600 mb-4">{resetError}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowResetModal(false)}
+                disabled={resetting}
+                className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleResetData}
+                disabled={resetting}
+                className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {resetting ? 'Resetting...' : 'Yes, Reset Everything'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete account confirmation modal */}
       {showDeleteModal && (
