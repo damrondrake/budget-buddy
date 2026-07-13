@@ -9,7 +9,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
-from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -80,8 +79,25 @@ app = FastAPI(title="BudgetBuddy API", version="0.1.0", lifespan=lifespan)
 # --- Rate limiting (slowapi) ------------------------------------------------
 # Per-route limits are declared with @limiter.limit(...) on sensitive auth
 # endpoints. Register the shared limiter and a handler that returns 429.
+#
+# slowapi's built-in handler returns `{"error": "..."}`, but every client here
+# reads the `detail` field (FastAPI's convention). Without `detail`, the
+# frontend can't tell a throttled request apart from a network failure and
+# shows a misleading generic error ("Unable to sign in"). So we return a
+# `detail` with an actionable message, keep the 429 status, and set Retry-After
+# so clients know how long to back off.
+def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    _log.info("Rate limit hit on %s %s: %s", request.method, request.url.path, exc.detail)
+    retry_after = exc.limit.limit.get_expiry()  # window length in seconds
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Too many attempts. Please wait a minute and try again."},
+        headers={"Retry-After": str(retry_after)},
+    )
+
+
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 

@@ -28,6 +28,14 @@ api.interceptors.response.use(
   },
 )
 
+// Extract a user-facing message from an axios error. Prefers FastAPI's `detail`,
+// then the `error` field used by rate-limit (429) responses, then a caller-
+// supplied fallback for network failures where there's no response body at all.
+export function apiErrorMessage(err, fallback) {
+  const data = err?.response?.data
+  return data?.detail || data?.error || fallback
+}
+
 // Auth — password reset & partner invites
 export const forgotPassword = (email) => api.post('/auth/forgot-password', { email })
 export const resetPassword = (token, password) => api.post('/auth/reset-password', { token, password })

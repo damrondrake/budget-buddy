@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { apiErrorMessage } from '../api/client'
 import BudgetBuddyLogo from '../components/BudgetBuddyLogo'
 import AuthFooter from '../components/AuthFooter'
 
@@ -23,8 +24,7 @@ export default function Login() {
       await login(email, password)
       navigate(redirectTo, { replace: true })
     } catch (err) {
-      const detail = err.response?.data?.detail || 'Unable to sign in. Please try again.'
-      setError(detail)
+      setError(apiErrorMessage(err, 'Unable to sign in. Please try again.'))
     } finally {
       setSubmitting(false)
     }

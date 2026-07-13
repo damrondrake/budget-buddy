@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { forgotPassword } from '../api/client'
+import { forgotPassword, apiErrorMessage } from '../api/client'
 import BudgetBuddyLogo from '../components/BudgetBuddyLogo'
 
 export default function ForgotPassword() {
@@ -19,8 +19,8 @@ export default function ForgotPassword() {
       setSent(true)
       // In local dev (no email key set) the API returns the token so the flow is testable.
       setDebugToken(res.data?.debug_token || null)
-    } catch {
-      setError('Something went wrong. Please try again.')
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Something went wrong. Please try again.'))
     } finally {
       setSubmitting(false)
     }

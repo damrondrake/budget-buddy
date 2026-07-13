@@ -77,6 +77,25 @@ def test_forgot_password_rate_limited_after_five_attempts(client, auth):
     assert codes[5] == 429
 
 
+def test_rate_limit_response_carries_detail_field(client, auth):
+    """A 429 must return an actionable ``detail`` (not slowapi's default
+    ``error`` key). Clients read ``detail``; without it a throttled request is
+    indistinguishable from a network failure and shows a misleading generic
+    error. See the "Unable to sign in" regression."""
+    with rate_limiting():
+        last = None
+        for _ in range(6):
+            last = client.post(
+                "/api/auth/login", json={"email": auth.email, "password": "wrongpass1"}
+            )
+    assert last.status_code == 429
+    body = last.json()
+    assert "detail" in body and body["detail"]
+    assert "wait" in body["detail"].lower()
+    # Retry-After header is preserved so clients know how long to back off.
+    assert "retry-after" in {k.lower() for k in last.headers}
+
+
 # ---------------------------------------------------------------------------
 # Account enumeration prevention
 # ---------------------------------------------------------------------------
