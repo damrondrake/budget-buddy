@@ -1,0 +1,44 @@
+# Render Blueprint for the BudgetBuddy backend (FastAPI + Neon Postgres).
+# https://render.com/docs/blueprint-spec
+#
+# Deploys the FastAPI app in ./backend on Render's free web-service tier.
+# The start command mirrors the old Railway one: run Alembic migrations, then
+# launch uvicorn. Secrets are declared with `sync: false` so Render prompts for
+# them in the dashboard rather than storing them in the repo.
+services:
+  - type: web
+    name: budget-buddy-api
+    runtime: python
+    plan: free
+    # Virginia (us-east) sits next to the Neon project (us-east-1) to keep
+    # DB round-trips fast.
+    region: virginia
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.7"
+      - key: ENVIRONMENT
+        value: production
+      # --- Set these in the Render dashboard (Environment tab) ---
+      - key: DATABASE_URL          # Neon connection string
+        sync: false
+      - key: SECRET_KEY            # copy the exact value from Railway
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
