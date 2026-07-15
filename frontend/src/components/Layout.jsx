@@ -52,7 +52,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="h-dvh flex bg-gray-50 overflow-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -65,13 +65,14 @@ export default function Layout() {
       <aside
         className={`
           fixed lg:static inset-y-0 left-0 z-30
+          h-dvh shrink-0
           w-64 bg-[var(--sidebar)] border-r border-gray-200 text-gray-600 flex flex-col
           transform transition-transform duration-200 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0
         `}
       >
-        <div className="p-6 border-b border-gray-200">
+        <div className="shrink-0 p-6 border-b border-gray-200">
           <BudgetBuddyLogo variant="horizontal" size="sm" />
           {cumulative && (
             <div className="mt-4 rounded-xl bg-gray-50 border border-gray-200 px-3.5 py-2.5">
@@ -87,7 +88,7 @@ export default function Layout() {
           )}
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-1">
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
@@ -108,7 +109,7 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-gray-200 space-y-1">
+        <div className="shrink-0 p-4 border-t border-gray-200 space-y-1">
           <NavLink
             to="/settings"
             onClick={() => setSidebarOpen(false)}
@@ -158,9 +159,9 @@ export default function Layout() {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile header */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
+        <header className="shrink-0 lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
           <button
             onClick={() => setSidebarOpen(true)}
             className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] -ml-2 rounded-md hover:bg-gray-100 text-gray-700"
@@ -173,7 +174,7 @@ export default function Layout() {
           <BudgetBuddyLogo variant="icon" size="sm" />
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+        <main className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>
