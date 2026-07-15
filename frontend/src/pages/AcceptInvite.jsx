@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { acceptInviteLogin, acceptInviteRegister } from '../api/client'
+import { acceptInviteLogin, acceptInviteRegister, apiErrorMessage } from '../api/client'
 import { useAuth } from '../context/AuthContext'
 import BudgetBuddyLogo from '../components/BudgetBuddyLogo'
 
@@ -29,7 +29,7 @@ export default function AcceptInvite() {
       await setSessionToken(res.data.access_token)
       navigate('/', { replace: true })
     } catch (err) {
-      setError(err.response?.data?.detail || 'Unable to accept this invite. The link may have expired.')
+      setError(apiErrorMessage(err, 'Unable to accept this invite. The link may have expired.'))
     } finally {
       setSubmitting(false)
     }
@@ -115,12 +115,15 @@ export default function AcceptInvite() {
               <input
                 type="password"
                 required
-                minLength={6}
+                minLength={mode === 'new' ? 8 : undefined}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={inputClass}
                 autoComplete={mode === 'new' ? 'new-password' : 'current-password'}
               />
+              {mode === 'new' && (
+                <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters.</p>
+              )}
             </div>
             <button
               type="submit"

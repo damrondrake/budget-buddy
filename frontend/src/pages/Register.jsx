@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { apiErrorMessage } from '../api/client'
 import BudgetBuddyLogo from '../components/BudgetBuddyLogo'
 import AuthFooter from '../components/AuthFooter'
 
@@ -22,8 +23,7 @@ export default function Register() {
       await register(displayName, email, password)
       navigate('/', { replace: true })
     } catch (err) {
-      const detail = err.response?.data?.detail || 'Unable to create account. Please try again.'
-      setError(detail)
+      setError(apiErrorMessage(err, 'Unable to create account. Please try again.'))
     } finally {
       setSubmitting(false)
     }
@@ -74,12 +74,13 @@ export default function Register() {
               <input
                 type="password"
                 required
-                minLength={6}
+                minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                 autoComplete="new-password"
               />
+              <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters.</p>
             </div>
             <button
               type="submit"

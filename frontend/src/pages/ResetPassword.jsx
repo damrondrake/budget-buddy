@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { resetPassword } from '../api/client'
+import { resetPassword, apiErrorMessage } from '../api/client'
 import BudgetBuddyLogo from '../components/BudgetBuddyLogo'
 
 export default function ResetPassword() {
@@ -21,8 +21,8 @@ export default function ResetPassword() {
       setError('Passwords do not match.')
       return
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.')
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
       return
     }
     setSubmitting(true)
@@ -31,7 +31,7 @@ export default function ResetPassword() {
       setDone(true)
       setTimeout(() => navigate('/login', { replace: true }), 1800)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Unable to reset password. The link may have expired.')
+      setError(apiErrorMessage(err, 'Unable to reset password. The link may have expired.'))
     } finally {
       setSubmitting(false)
     }
@@ -76,19 +76,20 @@ export default function ResetPassword() {
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
                   autoComplete="new-password"
                 />
+                <p className="mt-1 text-xs text-gray-500">Must be at least 8 characters.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  minLength={8}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"

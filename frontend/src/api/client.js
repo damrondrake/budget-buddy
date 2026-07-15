@@ -28,12 +28,32 @@ api.interceptors.response.use(
   },
 )
 
-// Extract a user-facing message from an axios error. Prefers FastAPI's `detail`,
-// then the `error` field used by rate-limit (429) responses, then a caller-
-// supplied fallback for network failures where there's no response body at all.
-export function apiErrorMessage(err, fallback) {
+// Extract a user-facing STRING from an axios error, safe to render in JSX.
+//
+// FastAPI/Pydantic 422 responses put `detail` as an ARRAY of error objects
+// ({type, loc, msg, input, ctx}), not a string. Rendering that array directly
+// crashes React with "Objects are not valid as a React child". This helper
+// always resolves to a string:
+//   - `detail` is a string        -> use it as-is (our HTTPException messages)
+//   - `detail` is a Pydantic array -> join the human-readable `msg` fields
+//   - `error` field (rate-limit)   -> use it
+//   - anything else / no response  -> caller's fallback
+export function apiErrorMessage(err, fallback = 'Something went wrong. Please try again.') {
   const data = err?.response?.data
-  return data?.detail || data?.error || fallback
+  const detail = data?.detail
+
+  if (typeof detail === 'string' && detail) return detail
+
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => (typeof item === 'string' ? item : item?.msg))
+      .filter(Boolean)
+    if (messages.length) return messages.join('. ')
+  }
+
+  if (typeof data?.error === 'string' && data.error) return data.error
+
+  return fallback
 }
 
 // Auth — password reset & partner invites
