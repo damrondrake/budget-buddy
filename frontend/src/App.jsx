@@ -19,6 +19,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import AcceptInvite from './pages/AcceptInvite'
 import Privacy from './pages/Privacy'
+import TermsOfService from './pages/TermsOfService'
 import NotFound from './pages/NotFound'
 
 // Wrap a route element in its own error boundary so a crash on one page shows
@@ -77,6 +78,7 @@ export default function App() {
           />
           {/* Always-public pages — reachable whether or not signed in. */}
           <Route path="/privacy" element={<Guarded><Privacy /></Guarded>} />
+          <Route path="/terms" element={<Guarded><TermsOfService /></Guarded>} />
           {/* Public token-based flows — reachable whether or not signed in. */}
           <Route path="/forgot-password" element={<Guarded><ForgotPassword /></Guarded>} />
           <Route path="/reset-password" element={<Guarded><ResetPassword /></Guarded>} />

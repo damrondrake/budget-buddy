@@ -11,6 +11,10 @@ export default function AuthFooter() {
         <Link to="/privacy" className="hover:text-gray-600 hover:underline">
           Privacy Policy
         </Link>
+        <span className="mx-1.5">·</span>
+        <Link to="/terms" className="hover:text-gray-600 hover:underline">
+          Terms of Service
+        </Link>
       </p>
       <p>
         Contact:{' '}

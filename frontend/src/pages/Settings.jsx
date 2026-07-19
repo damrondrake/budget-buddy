@@ -505,6 +505,10 @@ export default function Settings() {
             <Link to="/privacy" className="text-emerald-600 font-medium hover:underline">
               Privacy Policy
             </Link>
+            <span className="mx-1.5 text-gray-300">·</span>
+            <Link to="/terms" className="text-emerald-600 font-medium hover:underline">
+              Terms of Service
+            </Link>
           </p>
         </div>
         <p className="mt-4 text-xs text-gray-400">BudgetBuddy v1.3.0</p>
