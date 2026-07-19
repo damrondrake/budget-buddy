@@ -8,10 +8,31 @@ from app.database import get_db
 from app.auth import get_current_account
 from app.models import Transaction, Budget, Income, Category, User, Settlement
 from app.models.account import Account
-from app.schemas.summary import SummaryOut, CategorySpending, CumulativeOut
+from app.routers.savings import account_total_saved
+from app.schemas.summary import SummaryOut, CategorySpending, CumulativeOut, BudgetCoverage
 
 router = APIRouter(prefix="/api/summary", tags=["summary"])
 cumulative_router = APIRouter(prefix="/api/cumulative", tags=["cumulative"])
+
+
+def _account_net_balance(db: Session, account: Account) -> float:
+    """All-time income minus all-time spending, excluding transactions flagged
+    ``excluded_from_balance``. Shared by the cumulative endpoint and the monthly
+    summary's budget coverage so both agree on "available balance"."""
+    total_income = (
+        db.query(func.coalesce(func.sum(Income.amount), 0.0))
+        .filter(Income.account_id == account.id)
+        .scalar()
+    )
+    total_spending = (
+        db.query(func.coalesce(func.sum(Transaction.amount), 0.0))
+        .filter(
+            Transaction.account_id == account.id,
+            Transaction.excluded_from_balance.is_(False),
+        )
+        .scalar()
+    )
+    return round(float(total_income) - float(total_spending), 2)
 
 
 @cumulative_router.get("", response_model=CumulativeOut)
@@ -24,15 +45,21 @@ def get_cumulative(
         .filter(Income.account_id == account.id)
         .scalar()
     )
+    # Transactions marked "already paid externally" are tracked for budgets but
+    # left out of the all-time balance so they aren't subtracted twice.
     total_spending = (
         db.query(func.coalesce(func.sum(Transaction.amount), 0.0))
-        .filter(Transaction.account_id == account.id)
+        .filter(
+            Transaction.account_id == account.id,
+            Transaction.excluded_from_balance.is_(False),
+        )
         .scalar()
     )
     return CumulativeOut(
         total_income=round(float(total_income), 2),
         total_spending=round(float(total_spending), 2),
         net_balance=round(float(total_income) - float(total_spending), 2),
+        total_saved=account_total_saved(db, account),
     )
 
 
@@ -128,6 +155,24 @@ def get_summary(
 
     balance = {name: round(val, 2) for name, val in net.items()}
 
+    # Budget coverage: can the available (cumulative) balance still cover what's
+    # left to pay against this month's budgets? "spent" already reflects real
+    # transactions — including paid/excluded ones — so remaining obligations
+    # naturally net those out.
+    remaining_obligations = sum(
+        max(c.budget_limit - c.spent, 0.0)
+        for c in by_category
+        if c.budget_limit is not None
+    )
+    available_balance = _account_net_balance(db, account)
+    projected_balance = round(available_balance - remaining_obligations, 2)
+    budget_coverage = BudgetCoverage(
+        remaining_obligations=round(remaining_obligations, 2),
+        available_balance=available_balance,
+        projected_balance=projected_balance,
+        status="on_track" if projected_balance >= 0 else "short",
+    )
+
     return SummaryOut(
         month=month,
         year=year,
@@ -136,4 +181,5 @@ def get_summary(
         remaining=round(total_income - total_spent, 2),
         balance_between_users=balance,
         by_category=by_category,
+        budget_coverage=budget_coverage,
     )

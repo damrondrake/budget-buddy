@@ -15,6 +15,9 @@ class TransactionCreate(BaseModel):
     is_split: bool = False
     date: BoundedDate
     note: NoteStr | None = None
+    # When true, count toward budgets/paid status but don't subtract from the
+    # cumulative all-time balance (already paid before entering it here).
+    excluded_from_balance: bool = False
     # When true, also create a recurring rule from this transaction.
     make_recurring: bool = False
     recurring_frequency: Frequency | None = None
@@ -27,6 +30,7 @@ class TransactionUpdate(BaseModel):
     is_split: bool | None = None
     date: BoundedDate | None = None
     note: NoteStr | None = None
+    excluded_from_balance: bool | None = None
     # When set, toggles the recurring rule for this transaction: true creates a
     # rule (if not already recurring); false removes it (keeping the transaction).
     make_recurring: bool | None = None
@@ -41,6 +45,7 @@ class TransactionOut(BaseModel):
     is_split: bool
     date: date_type
     note: str | None
+    excluded_from_balance: bool = False
     is_recurring: bool = False
     recurring_id: int | None = None
     category_name: str | None = None

@@ -27,6 +27,18 @@ class SavingsTransactionCreate(BaseModel):
     paid_by: int | None = None
 
 
+class QuickDepositCreate(BaseModel):
+    """A one-field-lighter deposit that targets a default "Savings" goal.
+
+    Auto-creates the default goal on first use, so setting money aside doesn't
+    require building out a goal/allocation first. Date defaults to today.
+    """
+    amount: PositiveAmount
+    note: NoteStr | None = None
+    paid_by: int
+    date: BoundedDate | None = None
+
+
 class SavingsAllocationOut(BaseModel):
     id: int
     label: str

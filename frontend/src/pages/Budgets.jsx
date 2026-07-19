@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   getBudgets, upsertBudget, deleteBudget, copyBudgets, getCategories, getSummary,
   addBudgetLineItem, updateBudgetLineItem, deleteBudgetLineItem,
-  setBudgetPaid, createTransaction,
+  setBudgetPaid, createTransaction, getTransactions,
 } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import IconButton from '../components/ui/IconButton'
@@ -31,6 +31,9 @@ export default function Budgets() {
   const [budgets, setBudgets] = useState([])
   const [categories, setCategories] = useState([])
   const [spending, setSpending] = useState({})
+  // Category ids that have at least one "already paid externally" transaction
+  // this month, so a paid budget can flag that its balance wasn't affected.
+  const [excludedCatIds, setExcludedCatIds] = useState(() => new Set())
   // Persisted "Add a Budget Line Item" draft (category + label + amount).
   const budgetDraft = useDraft('draft_budget', { category_id: '', label: '', amount: '' })
   const form = budgetDraft.value
@@ -41,6 +44,8 @@ export default function Budgets() {
   // The budget awaiting a "who paid?" confirmation, plus the selected payer.
   const [payingBudget, setPayingBudget] = useState(null)
   const [payByUserId, setPayByUserId] = useState('')
+  // "Already paid externally" toggle in the who-paid modal.
+  const [payExcluded, setPayExcluded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
@@ -61,14 +66,17 @@ export default function Budgets() {
       setLoading(true)
       setError(false)
     }
-    Promise.all([getBudgets({ month, year }), getSummary(month, year)])
-      .then(([budgetsRes, summaryRes]) => {
+    Promise.all([getBudgets({ month, year }), getSummary(month, year), getTransactions({ month, year })])
+      .then(([budgetsRes, summaryRes, txnsRes]) => {
         setBudgets(budgetsRes.data)
         const map = {}
         for (const c of summaryRes.data.by_category) {
           map[c.category_id] = c.spent
         }
         setSpending(map)
+        setExcludedCatIds(
+          new Set(txnsRes.data.filter((t) => t.excluded_from_balance).map((t) => t.category_id))
+        )
       })
       .catch(() => { if (!silent) setError(true) })
       .finally(() => { if (!silent) setLoading(false) })
@@ -195,6 +203,7 @@ export default function Budgets() {
 
   function openPayPrompt(budget) {
     setPayByUserId(String(users[0]?.id ?? ''))
+    setPayExcluded(false)
     setPayingBudget(budget)
   }
 
@@ -208,6 +217,7 @@ export default function Budgets() {
       paid_by: userId,
       date: todayStr(),
       note: `Paid - ${b.category_name}`,
+      excluded_from_balance: payExcluded,
     })
     await setBudgetPaid(b.id, true)
     setPayingBudget(null)
@@ -343,6 +353,11 @@ export default function Budgets() {
                       {isPaid && (
                         <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-semibold shrink-0">
                           Paid ✓
+                        </span>
+                      )}
+                      {isPaid && excludedCatIds.has(b.category_id) && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-semibold shrink-0">
+                          Not counted in balance
                         </span>
                       )}
                     </div>
@@ -588,6 +603,20 @@ export default function Budgets() {
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
+            <label className="flex items-start gap-2 cursor-pointer mb-4">
+              <input
+                type="checkbox"
+                checked={payExcluded}
+                onChange={(e) => setPayExcluded(e.target.checked)}
+                className="w-4 h-4 mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span>
+                <span className="text-sm font-medium text-gray-700">Already paid — don't subtract from my balance</span>
+                <span className="block text-xs text-gray-400">
+                  Use this if you paid this before entering it here, so it doesn't get subtracted twice.
+                </span>
+              </span>
+            </label>
             <div className="flex justify-end gap-2">
               <button
                 type="button"

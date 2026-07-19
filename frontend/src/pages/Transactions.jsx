@@ -27,6 +27,7 @@ function emptyForm(users) {
     paid_by: users[0]?.id ?? '',
     is_split: false,
     note: '',
+    excluded_from_balance: false,
     make_recurring: false,
     recurring_frequency: 'monthly',
   }
@@ -133,6 +134,7 @@ export default function Transactions() {
       paid_by: t.paid_by,
       is_split: t.is_split,
       note: t.note || '',
+      excluded_from_balance: !!t.excluded_from_balance,
       make_recurring: !!t.recurring_id,
       recurring_frequency: rule?.frequency || 'monthly',
     })
@@ -560,6 +562,24 @@ export default function Transactions() {
                 />
               </div>
 
+              {/* Already paid externally — don't touch cumulative balance */}
+              <div className="border-t border-gray-100 pt-3">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.excluded_from_balance}
+                    onChange={(e) => setForm({ ...form, excluded_from_balance: e.target.checked })}
+                    className="w-4 h-4 mt-0.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span>
+                    <span className="text-sm font-medium text-gray-700">Already paid — don't subtract from my balance</span>
+                    <span className="block text-xs text-gray-400">
+                      Use this if you paid this before entering it here, so it doesn't get subtracted twice.
+                    </span>
+                  </span>
+                </label>
+              </div>
+
               {/* Make this recurring */}
               <div className="border-t border-gray-100 pt-3">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -656,6 +676,11 @@ export default function Transactions() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                         {FREQ_LABEL[recurringById[t.recurring_id]?.frequency] || 'Recurring'}
+                      </span>
+                    )}
+                    {t.excluded_from_balance && (
+                      <span className="ml-2 inline-flex items-center text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-normal">
+                        Not counted in balance
                       </span>
                     )}
                   </p>

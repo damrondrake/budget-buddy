@@ -57,6 +57,7 @@ def _enrich(t: Transaction) -> TransactionOut:
         is_split=t.is_split,
         date=t.date,
         note=t.note,
+        excluded_from_balance=t.excluded_from_balance,
         is_recurring=t.is_recurring,
         recurring_id=t.recurring_id,
         category_name=t.category.name if t.category else None,

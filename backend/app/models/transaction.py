@@ -18,6 +18,10 @@ class Transaction(Base):
     note: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_recurring: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="0")
     recurring_id: Mapped[int | None] = mapped_column(ForeignKey("recurring_transactions.id"), nullable=True)
+    # When true, this transaction is tracked for budget/paid purposes but is NOT
+    # subtracted from the cumulative all-time balance — used for things paid in
+    # real life before they were ever entered here (avoids double-counting).
+    excluded_from_balance: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="0")
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"), nullable=False)
 
     category: Mapped["Category"] = relationship(back_populates="transactions")

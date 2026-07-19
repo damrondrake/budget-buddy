@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { getSummary, getTransactions, getCumulative, getStartingBalance, getSettlements, createSettlement, getHealthScore, setBudgetPaid, createTransaction } from '../api/client'
+import { getSummary, getTransactions, getCumulative, getStartingBalance, getSettlements, createSettlement, getHealthScore, setBudgetPaid, createTransaction, quickDeposit, apiErrorMessage } from '../api/client'
 import MonthPicker from '../components/MonthPicker'
 import EmptyState, { TransactionsEmptyIcon } from '../components/EmptyState'
 import PageError from '../components/PageError'
@@ -44,6 +44,11 @@ export default function Dashboard() {
   const [bannerDismissed, setBannerDismissed] = useState(
     () => !!localStorage.getItem(HIDE_BANNER_KEY)
   )
+  // Move-to-Savings inline form on the Balance Breakdown card.
+  const [showMove, setShowMove] = useState(false)
+  const [moveForm, setMoveForm] = useState({ amount: '', note: '', paid_by: '' })
+  const [movingSubmitting, setMovingSubmitting] = useState(false)
+  const [moveError, setMoveError] = useState(null)
   const { users } = useUsers()
 
   // `silent` skips the loading skeleton — used by background polling so the
@@ -81,8 +86,12 @@ export default function Dashboard() {
   // up without a manual reload.
   usePolling(() => { load(true); fetchHealth() })
 
+  function fetchCumulative() {
+    return getCumulative().then((res) => setCumulative(res.data)).catch(() => {})
+  }
+
   useEffect(() => {
-    getCumulative().then((res) => setCumulative(res.data)).catch(() => {})
+    fetchCumulative()
   }, [])
 
   useEffect(() => {
@@ -193,6 +202,43 @@ export default function Dashboard() {
     }
   }
 
+  function openMove() {
+    setMoveError(null)
+    setMoveForm({ amount: '', note: '', paid_by: String(users[0]?.id ?? '') })
+    setShowMove(true)
+  }
+
+  async function handleMoveToSavings(e) {
+    e.preventDefault()
+    setMoveError(null)
+    const amount = parseFloat(moveForm.amount)
+    const available = cumulative?.net_balance ?? 0
+    if (Number.isNaN(amount) || amount <= 0) {
+      setMoveError('Enter an amount greater than 0.')
+      return
+    }
+    if (amount > available) {
+      setMoveError(`That's more than your available balance (${formatMoney(available)}).`)
+      return
+    }
+    setMovingSubmitting(true)
+    try {
+      await quickDeposit({
+        amount,
+        note: moveForm.note || null,
+        paid_by: parseInt(moveForm.paid_by || users[0]?.id),
+      })
+      setShowMove(false)
+      await fetchCumulative()
+      load()
+      fetchHealth()
+    } catch (err) {
+      setMoveError(apiErrorMessage(err, 'Failed to move money to savings. Please try again.'))
+    } finally {
+      setMovingSubmitting(false)
+    }
+  }
+
   const balanceInfo = summary ? getBalanceText(summary.balance_between_users) : { text: '—', color: 'text-gray-400' }
   const budgeted = summary ? summary.by_category.filter((c) => c.budget_limit) : []
 
@@ -291,26 +337,109 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Cumulative Balance card */}
+          {/* Balance Breakdown + Budget Coverage */}
           {cumulative && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-8">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Cumulative Balance</p>
-                  <p className={`text-2xl font-bold ${cumulative.net_balance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                    {formatMoney(cumulative.net_balance)}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">All-time income minus spending</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+              {/* Balance Breakdown card */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <p className="text-sm text-gray-500">Balance Breakdown</p>
+                  <button
+                    type="button"
+                    onClick={openMove}
+                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v8m4-4H8" />
+                    </svg>
+                    Move to Savings
+                  </button>
                 </div>
-                <div className="text-xs text-gray-500 sm:text-right space-y-1">
-                  <p>
-                    Lifetime income: <span className="text-emerald-600 font-medium">{formatMoney(cumulative.total_income)}</span>
-                  </p>
-                  <p>
-                    Lifetime spending: <span className="text-red-500 font-medium">{formatMoney(cumulative.total_spending)}</span>
-                  </p>
+
+                {/* Available Balance — primary */}
+                <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">Available Balance</p>
+                <p className={`text-3xl font-bold tracking-tight ${cumulative.net_balance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {formatMoney(cumulative.net_balance)}
+                </p>
+                <div className="text-xs text-gray-500 space-y-0.5 mt-1">
+                  <p>Lifetime income: <span className="text-emerald-600 font-medium">{formatMoney(cumulative.total_income)}</span></p>
+                  <p>Lifetime spending: <span className="text-red-500 font-medium">{formatMoney(cumulative.total_spending)}</span></p>
                 </div>
+
+                {/* In Savings + Total Balance */}
+                <div className="mt-4 pt-3 border-t border-gray-100 flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">In Savings</p>
+                    <p className="text-lg font-semibold text-gray-900">{formatMoney(cumulative.total_saved)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[11px] uppercase tracking-wide text-gray-400 font-medium">Total Balance</p>
+                    <p className="text-sm font-medium text-gray-500">
+                      {formatMoney(cumulative.net_balance + cumulative.total_saved)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Inline Move-to-Savings form */}
+                {showMove && (
+                  <form onSubmit={handleMoveToSavings} className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        required
+                        autoFocus
+                        value={moveForm.amount}
+                        onChange={(e) => setMoveForm({ ...moveForm, amount: e.target.value })}
+                        placeholder="Amount"
+                        className="w-full sm:w-32 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
+                      />
+                      <input
+                        type="text"
+                        value={moveForm.note}
+                        onChange={(e) => setMoveForm({ ...moveForm, note: e.target.value })}
+                        placeholder="Note (optional)"
+                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
+                      />
+                    </div>
+                    {users.length > 1 && (
+                      <select
+                        value={moveForm.paid_by}
+                        onChange={(e) => setMoveForm({ ...moveForm, paid_by: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-[#f3f3f5] focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white outline-none"
+                      >
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>From {u.name}</option>
+                        ))}
+                      </select>
+                    )}
+                    {moveError && <p className="text-sm text-red-600">{moveError}</p>}
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        disabled={movingSubmitting}
+                        className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors disabled:bg-emerald-400"
+                      >
+                        {movingSubmitting ? 'Moving...' : 'Move to Savings'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowMove(false)}
+                        disabled={movingSubmitting}
+                        className="inline-flex items-center justify-center min-h-[44px] px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
+
+              {/* Budget Coverage card */}
+              {summary?.budget_coverage && (
+                <BudgetCoverageCard coverage={summary.budget_coverage} />
+              )}
             </div>
           )}
 
@@ -526,6 +655,37 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function BudgetCoverageCard({ coverage }) {
+  const onTrack = coverage.status === 'on_track'
+  const buffer = Math.abs(coverage.projected_balance)
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex flex-col">
+      <p className="text-sm text-gray-500 mb-3">Budget Coverage</p>
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">Left to pay this month</p>
+          <p className="text-2xl font-bold tracking-tight text-gray-900">{formatMoney(coverage.remaining_obligations)}</p>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-wide text-gray-400 font-medium">Available</p>
+          <p className={`text-2xl font-bold tracking-tight ${coverage.available_balance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+            {formatMoney(coverage.available_balance)}
+          </p>
+        </div>
+      </div>
+      <div className={`mt-auto rounded-lg px-4 py-3 text-sm font-medium ${
+        onTrack ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
+      }`}>
+        {onTrack ? (
+          <>You're on track — {formatMoney(buffer)} buffer after this month's budgets.</>
+        ) : (
+          <>You're short {formatMoney(buffer)} to cover this month's budgets.</>
+        )}
+      </div>
     </div>
   )
 }

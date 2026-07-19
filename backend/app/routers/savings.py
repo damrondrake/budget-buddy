@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import date as date_type
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -21,16 +22,31 @@ from app.schemas.savings import (
     SavingsAllocationOut,
     SavingsTransactionCreate,
     SavingsTransactionOut,
+    QuickDepositCreate,
 )
 
 router = APIRouter(prefix="/api/savings", tags=["savings"])
 
 SAVINGS_CATEGORY_NAME = "Savings"
+# Name + color used for the auto-created default goal behind quick deposits.
+DEFAULT_SAVINGS_GOAL_NAME = "Savings"
+DEFAULT_SAVINGS_GOAL_COLOR = "#22C55E"
 
 
 def _signed(txn: SavingsTransaction) -> float:
     """Deposits add to a balance, withdrawals subtract."""
     return txn.amount if txn.type == "deposit" else -txn.amount
+
+
+def account_total_saved(db: Session, account: Account) -> float:
+    """Signed sum of every savings transaction on the account (deposits minus
+    withdrawals) — the same logic ``_enrich_goal`` applies per goal, rolled up
+    across all goals so other endpoints (e.g. cumulative balance) can surface an
+    account-wide "in savings" figure."""
+    txns = db.query(SavingsTransaction).filter(
+        SavingsTransaction.account_id == account.id
+    ).all()
+    return round(sum(_signed(t) for t in txns), 2)
 
 
 def _enrich_goal(goal: SavingsGoal) -> SavingsGoalOut:
@@ -87,6 +103,25 @@ def _get_or_create_savings_category(db: Session, account: Account) -> Category:
         db.add(cat)
         db.flush()
     return cat
+
+
+def _get_or_create_default_goal(db: Session, account: Account) -> SavingsGoal:
+    """The catch-all "Savings" goal that quick deposits land in. Created lazily
+    the first time an account sets money aside without picking a specific goal."""
+    goal = db.query(SavingsGoal).filter(
+        SavingsGoal.account_id == account.id,
+        SavingsGoal.name == DEFAULT_SAVINGS_GOAL_NAME,
+    ).order_by(SavingsGoal.created_at.asc()).first()
+    if not goal:
+        goal = SavingsGoal(
+            name=DEFAULT_SAVINGS_GOAL_NAME,
+            color=DEFAULT_SAVINGS_GOAL_COLOR,
+            account_id=account.id,
+        )
+        db.add(goal)
+        db.commit()
+        db.refresh(goal)
+    return goal
 
 
 @router.get("", response_model=list[SavingsGoalOut])
@@ -232,6 +267,32 @@ def add_savings_transaction(
         note=txn.note,
         date=txn.date,
     )
+
+
+@router.post("/quick-deposit", response_model=SavingsGoalOut, status_code=201)
+def quick_deposit(
+    data: QuickDepositCreate,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_current_account),
+):
+    """Move money into savings in one step: deposit into the default "Savings"
+    goal (auto-creating it the first time), without setting up a goal first.
+
+    Runs through the same deposit path as ``add_savings_transaction`` so it also
+    records the real transaction that reduces the cumulative balance.
+    """
+    goal = _get_or_create_default_goal(db, account)
+    deposit = SavingsTransactionCreate(
+        amount=data.amount,
+        type="deposit",
+        allocation_id=None,
+        note=data.note,
+        date=data.date or date_type.today(),
+        paid_by=data.paid_by,
+    )
+    add_savings_transaction(goal.id, deposit, db, account)
+    db.refresh(goal)
+    return _enrich_goal(goal)
 
 
 @router.get("/{goal_id}/transactions", response_model=list[SavingsTransactionOut])

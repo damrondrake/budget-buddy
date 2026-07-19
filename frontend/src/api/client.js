@@ -70,6 +70,8 @@ export const addSavingsAllocation = (goalId, data) => api.post(`/savings/${goalI
 export const deleteSavingsAllocation = (goalId, allocId) => api.delete(`/savings/${goalId}/allocations/${allocId}`)
 export const addSavingsTransaction = (goalId, data) => api.post(`/savings/${goalId}/transactions`, data)
 export const getSavingsTransactions = (goalId) => api.get(`/savings/${goalId}/transactions`)
+// Quick-deposit into the default "Savings" goal (auto-created on first use).
+export const quickDeposit = (data) => api.post('/savings/quick-deposit', data)
 
 // Shared Financial Goals — couple-focused goals both partners contribute toward.
 export const getSharedGoals = () => api.get('/shared-goals')
